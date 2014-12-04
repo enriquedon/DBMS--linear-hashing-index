@@ -4,7 +4,8 @@ CODEROOT = ..
 LDLIBS = -lreadline
 
 #CC = gcc
-CC = g++-4.8
+#CC = g++-4.8
+CC = g++
 
 CXX = $(CC)
 

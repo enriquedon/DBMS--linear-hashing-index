@@ -114,8 +114,7 @@ class TableScan : public Iterator
         	iter->close();
         };
 };
-
-
+/*
 class IndexScan : public Iterator
 {
     // A wrapper inheriting Iterator over IX_IndexScan
@@ -190,6 +189,7 @@ class IndexScan : public Iterator
             iter->close();
         };
 };
+ */
 
 
 class Filter : public Iterator {
@@ -199,10 +199,19 @@ class Filter : public Iterator {
                const Condition &condition     // Selection condition
         );
         ~Filter(){};
-
-        RC getNextTuple(void *data) {return QE_EOF;};
+    
+        bool checkCondition(void *data,Condition cond,Iterator *initer);
+        RC getNextTuple(void *data);
         // For attribute in vector<Attribute>, name it as rel.attr
-        void getAttributes(vector<Attribute> &attrs) const{};
+        void getAttributes(vector<Attribute> &attrs) const
+        {
+            initer->getAttributes(attrs);
+        }
+    private:
+        Iterator *initer;
+        Condition cond;
+    
+    
 };
 
 
@@ -210,12 +219,15 @@ class Project : public Iterator {
     // Projection operator
     public:
         Project(Iterator *input,                    // Iterator of input R
-              const vector<string> &attrNames){};   // vector containing attribute names
+              const vector<string> &attrNames);   // vector containing attribute names
         ~Project(){};
 
-        RC getNextTuple(void *data) {return QE_EOF;};
+        RC getNextTuple(void *data);
         // For attribute in vector<Attribute>, name it as rel.attr
-        void getAttributes(vector<Attribute> &attrs) const{};
+        void getAttributes(vector<Attribute> &attrs) const;
+    private:
+        Iterator *initer;
+        vector <string> projAttrs;
 };
 
 class GHJoin : public Iterator {
@@ -249,7 +261,7 @@ class BNLJoin : public Iterator {
         void getAttributes(vector<Attribute> &attrs) const{};
 };
 
-
+/*
 class INLJoin : public Iterator {
     // Index nested-loop join operator
     public:
@@ -263,6 +275,7 @@ class INLJoin : public Iterator {
         // For attribute in vector<Attribute>, name it as rel.attr
         void getAttributes(vector<Attribute> &attrs) const{};
 };
+ */
 
 
 class Aggregate : public Iterator {
@@ -273,7 +286,7 @@ class Aggregate : public Iterator {
         Aggregate(Iterator *input,          // Iterator of input R
                   Attribute aggAttr,        // The attribute over which we are computing an aggregate
                   AggregateOp op            // Aggregate operation
-        ){};
+        );
 
         // Optional for everyone. 5 extra-credit points
         // Group-based hash aggregation
@@ -285,11 +298,19 @@ class Aggregate : public Iterator {
         ){};
         ~Aggregate(){};
 
-        RC getNextTuple(void *data){return QE_EOF;};
+        RC getNextTuple(void *data);
         // Please name the output attribute as aggregateOp(aggAttr)
         // E.g. Relation=rel, attribute=attr, aggregateOp=MAX
         // output attrname = "MAX(rel.attr)"
         void getAttributes(vector<Attribute> &attrs) const{};
+        void func(void *record,void * tmp,AggregateOp op,Attribute agg);
+    private:
+        Iterator *initer;
+        Attribute agg;
+        bool grouped;
+        //Attribute grAttr;
+        AggregateOp op;
+    
 };
 
 #endif
