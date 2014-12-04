@@ -3,7 +3,9 @@
 
 #include <string>
 #include <vector>
-
+#include <iostream>
+#include <string.h>
+#include <map>
 #include "pfm.h"
 //#include "../rbf/pfm.h"
 

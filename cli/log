@@ -1,0 +1,14 @@
+make -C ../ix libix.a
+make[1]: Entering directory '/home/dy/test222/project4/ix'
+make[1]: Nothing to be done for 'libix.a'.
+make[1]: Leaving directory '/home/dy/test222/project4/ix'
+make -C ../rm librm.a
+make[1]: Entering directory '/home/dy/test222/project4/rm'
+make[1]: Nothing to be done for 'librm.a'.
+make[1]: Leaving directory '/home/dy/test222/project4/rm'
+make -C ../rbf librbf.a
+make[1]: Entering directory '/home/dy/test222/project4/rbf'
+make[1]: Nothing to be done for 'librbf.a'.
+make[1]: Leaving directory '/home/dy/test222/project4/rbf'
+g++   clitest_01.o libcli.a ../qe/libqe.a ../ix/libix.a ../rm/librm.a ../rbf/librbf.a  -lreadline -o clitest_01
+<builtin>: recipe for target 'clitest_01' failed

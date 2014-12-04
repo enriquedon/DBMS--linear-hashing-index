@@ -1022,8 +1022,7 @@ RC IndexManager::writeRehashedPages(const Attribute &attribute,
 		FileHandle &metaFileHandle, FileHandle &primaryFileHandle,
 		vector<void *> &newPages1, vector<void *> &newPages2,vector<int> usedOFnumber) {
 	int pageNumber1 = attributeTable[attribute.name][1];
-	int pageNumber2 = pageNumber1
-			+ (int) pow(2, attributeTable[attribute.name][0] + 2);
+	//int pageNumber2 = pageNumber1 + (int) pow(2, attributeTable[attribute.name][0] + 2);
 	int numOfOverflowPages = metaFileHandle.getNumberOfPages()-1;
     //int numOfOverflowPages ;
 	void * newPage1 = newPages1[0];
@@ -1034,8 +1033,6 @@ RC IndexManager::writeRehashedPages(const Attribute &attribute,
         //cout<<"write primpage to:"<<pageNumber1<<endl;
 		memcpy((char *) newPage1 + PAGE_SIZE - sizeof(int), &usedOFnumber[used],
 				sizeof(int));
-
-
 		used++;
 		primaryFileHandle.writePage(pageNumber1, newPage1);
 
@@ -3067,12 +3064,10 @@ void IX_PrintError (RC rc)
 			fprintf(stderr, "ERROR CODE: %d, ERROR MESSAGE: %s\n", rc, "Not such entry in the file.\n");
 			return;
         case GET_ATTRIBUTES_ERROR:
-            fprintf(stderr, "ERROR CODE: %d, ERROR MESSAGE: %s\n", rc,
-                "Cannot get attributes.\n");
+            fprintf(stderr, "ERROR CODE: %d, ERROR MESSAGE: %s\n", rc, "Cannot get attributes.\n");
             return;
         case WRONG_ATTRIBUTENAME:
-            fprintf(stderr, "ERROR CODE: %d, ERROR MESSAGE: %s\n", rc,
-                "Not such attribute in the table.\n");
+            fprintf(stderr, "ERROR CODE: %d, ERROR MESSAGE: %s\n", rc, "Not such attribute in the table.\n");
             return;
 	}
 }

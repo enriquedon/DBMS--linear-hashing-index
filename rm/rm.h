@@ -4,7 +4,9 @@
 #include <string>
 #include <vector>
 #include <map>
-
+#include <string.h>
+#include <stdlib.h>
+#include <iostream>
 #include "../rbf/rbfm.h"
 #include "../ix/ix.h"
 

@@ -114,7 +114,7 @@ class TableScan : public Iterator
         	iter->close();
         };
 };
-/*
+
 class IndexScan : public Iterator
 {
     // A wrapper inheriting Iterator over IX_IndexScan
@@ -189,7 +189,7 @@ class IndexScan : public Iterator
             iter->close();
         };
 };
- */
+
 
 
 class Filter : public Iterator {
@@ -261,7 +261,7 @@ class BNLJoin : public Iterator {
         void getAttributes(vector<Attribute> &attrs) const{};
 };
 
-/*
+
 class INLJoin : public Iterator {
     // Index nested-loop join operator
     public:
@@ -275,7 +275,7 @@ class INLJoin : public Iterator {
         // For attribute in vector<Attribute>, name it as rel.attr
         void getAttributes(vector<Attribute> &attrs) const{};
 };
- */
+
 
 
 class Aggregate : public Iterator {

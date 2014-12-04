@@ -4,6 +4,11 @@
 #include <vector>
 #include <string>
 #include <map>
+#include <unistd.h>
+#include <sys/types.h>
+#include <iostream>
+#include <bitset>
+#include <math.h>
 #include "../rbf/rbfm.h"
 
 # define IX_EOF (-1)  // end of the index scan
