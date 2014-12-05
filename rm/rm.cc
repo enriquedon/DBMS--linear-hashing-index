@@ -12,6 +12,7 @@ RelationManager* RelationManager::instance() {
 
 RelationManager::RelationManager() {
 
+	pfm = PagedFileManager::instance();
 	rbfm = RecordBasedFileManager::instance();
 	ix = IndexManager::instance();
 	MaxTableId = 0;
@@ -806,7 +807,7 @@ RC RelationManager::createIndex(const string &tableName,
 	string indexTableName = tableName + "_" + attributeName;
 	FileHandle fileHandle;
 
-	if (rbfm->openFile(indexTableName, fileHandle) == 0) {
+	if (rbfm->openFile(indexTableName, fileHandle) == 0) {//index exists
 		rbfm->closeFile(fileHandle);
 		return -1;
 	}
@@ -814,15 +815,16 @@ RC RelationManager::createIndex(const string &tableName,
 	rbfm->openFile(IndexCatalog, fileHandle);
 //tablename , attriname
 	void *CatalogPage = malloc(PAGE_SIZE);
+	memset(CatalogPage,0,PAGE_SIZE);
 	unsigned int offset = 0;
 
-	unsigned int fileNameLength = (unsigned int) attributeName.length()
+	unsigned int indexTableNameLength = (unsigned int) attributeName.length()
 			+ (unsigned int) tableName.length();
-	memcpy((char*) CatalogPage + offset, &fileNameLength, sizeof(int));
+	memcpy((char*) CatalogPage + offset, &indexTableNameLength, sizeof(int));
 	offset += sizeof(int);
-	memcpy((char*) CatalogPage + offset, attributeName.c_str(),
-			sizeof(char) * fileNameLength);
-	offset += fileNameLength;
+	memcpy((char*) CatalogPage + offset, indexTableName.c_str(),
+			sizeof(char) * indexTableNameLength);
+	offset += indexTableNameLength;
 
 	unsigned int attributeNameLength = (unsigned int) attributeName.length();
 	memcpy((char*) CatalogPage + offset, &attributeNameLength, sizeof(int));
@@ -839,6 +841,12 @@ RC RelationManager::createIndex(const string &tableName,
 	//offset += tableNameLength;
 	RID rid;
 	rbfm->insertRecord(fileHandle, IndexTable_v, CatalogPage, rid);
+
+	//cout<<"indexTableNameLength:"<<indexTableNameLength<<endl;
+	//cout<<"tableNameLength:"<<tableNameLength<<endl;
+	//cout<<"attributeNameLength:"<<attributeNameLength<<endl;
+
+
 	free(CatalogPage);
 	rbfm->closeFile(fileHandle);
 	return 0;
@@ -850,7 +858,7 @@ RC RelationManager::destroyIndex(const string &tableName,
 	string indexTableName = tableName + "_" + attributeName;
 	rbfm->destroyFile(indexTableName);  //delete file
 
-	RID rid;
+	RID Irid;
 	FileHandle fileHandle;
 	RBFM_ScanIterator rbfm_ScanIterator;
 	void *CatalogPage = malloc(PAGE_SIZE);
@@ -865,8 +873,8 @@ RC RelationManager::destroyIndex(const string &tableName,
 	attributes.push_back(string("indexFileName"));
 	rbfm->scan(fileHandle, IndexTable_v, string("indexFileName"), EQ_OP,
 			tableInfo, attributes, rbfm_ScanIterator);
-	if (rbfm_ScanIterator.getNextRecord(rid, CatalogPage) != -1) {
-		rbfm->deleteRecord(fileHandle, IndexTable_v, rid);
+	if (rbfm_ScanIterator.getNextRecord(Irid, CatalogPage) != -1) {
+		rbfm->deleteRecord(fileHandle, IndexTable_v, Irid);
 		attributes.clear();
 		free(tableInfo);
 		free(CatalogPage);
