@@ -4,49 +4,49 @@ make[1]: Entering directory '/home/dy/test222/project4/rbf'
 rm rbftest rbftest11a rbftest11b rbftest12 rbftest13 rbftest14 rbftest15 rbftest16 *.a *.o *~
 makefile:40: recipe for target 'clean' failed
 make[1]: Leaving directory '/home/dy/test222/project4/rbf'
-g++  -Wall -I.. -std=c++11 -DDATABASE_FOLDER=\"../cli/\" -g   -c -o ix.o ix.cc
+g++  -I.. -std=c++11 -DDATABASE_FOLDER=\"../cli/\" -g   -c -o ix.o ix.cc
 ar rv libix.a ix.o
 a - ix.o
-g++  -Wall -I.. -std=c++11 -DDATABASE_FOLDER=\"../cli/\" -g   -c -o ixtest1.o ixtest1.cc
+g++  -I.. -std=c++11 -DDATABASE_FOLDER=\"../cli/\" -g   -c -o ixtest1.o ixtest1.cc
 make -C ../rbf librbf.a
 make[1]: Entering directory '/home/dy/test222/project4/rbf'
-g++  -Wall -I.. -std=c++11 -DDATABASE_FOLDER=\"../cli/\" -g   -c -o pfm.o pfm.cc
+g++  -I.. -std=c++11 -DDATABASE_FOLDER=\"../cli/\" -g   -c -o pfm.o pfm.cc
 ar rv librbf.a pfm.o
 a - pfm.o
-g++  -Wall -I.. -std=c++11 -DDATABASE_FOLDER=\"../cli/\" -g   -c -o rbfm.o rbfm.cc
+g++  -I.. -std=c++11 -DDATABASE_FOLDER=\"../cli/\" -g   -c -o rbfm.o rbfm.cc
 ar rv librbf.a rbfm.o
 a - rbfm.o
 make[1]: Leaving directory '/home/dy/test222/project4/rbf'
 g++   ixtest1.o libix.a ../rbf/librbf.a  -lreadline -o ixtest1
-g++  -Wall -I.. -std=c++11 -DDATABASE_FOLDER=\"../cli/\" -g   -c -o ixtest2.o ixtest2.cc
+g++  -I.. -std=c++11 -DDATABASE_FOLDER=\"../cli/\" -g   -c -o ixtest2.o ixtest2.cc
 g++   ixtest2.o libix.a ../rbf/librbf.a  -lreadline -o ixtest2
-g++  -Wall -I.. -std=c++11 -DDATABASE_FOLDER=\"../cli/\" -g   -c -o ixtest3.o ixtest3.cc
+g++  -I.. -std=c++11 -DDATABASE_FOLDER=\"../cli/\" -g   -c -o ixtest3.o ixtest3.cc
 g++   ixtest3.o libix.a ../rbf/librbf.a  -lreadline -o ixtest3
-g++  -Wall -I.. -std=c++11 -DDATABASE_FOLDER=\"../cli/\" -g   -c -o ixtest4a.o ixtest4a.cc
+g++  -I.. -std=c++11 -DDATABASE_FOLDER=\"../cli/\" -g   -c -o ixtest4a.o ixtest4a.cc
 g++   ixtest4a.o libix.a ../rbf/librbf.a  -lreadline -o ixtest4a
-g++  -Wall -I.. -std=c++11 -DDATABASE_FOLDER=\"../cli/\" -g   -c -o ixtest4b.o ixtest4b.cc
+g++  -I.. -std=c++11 -DDATABASE_FOLDER=\"../cli/\" -g   -c -o ixtest4b.o ixtest4b.cc
 g++   ixtest4b.o libix.a ../rbf/librbf.a  -lreadline -o ixtest4b
-g++  -Wall -I.. -std=c++11 -DDATABASE_FOLDER=\"../cli/\" -g   -c -o ixtest4c.o ixtest4c.cc
+g++  -I.. -std=c++11 -DDATABASE_FOLDER=\"../cli/\" -g   -c -o ixtest4c.o ixtest4c.cc
 g++   ixtest4c.o libix.a ../rbf/librbf.a  -lreadline -o ixtest4c
-g++  -Wall -I.. -std=c++11 -DDATABASE_FOLDER=\"../cli/\" -g   -c -o ixtest5.o ixtest5.cc
+g++  -I.. -std=c++11 -DDATABASE_FOLDER=\"../cli/\" -g   -c -o ixtest5.o ixtest5.cc
 g++   ixtest5.o libix.a ../rbf/librbf.a  -lreadline -o ixtest5
-g++  -Wall -I.. -std=c++11 -DDATABASE_FOLDER=\"../cli/\" -g   -c -o ixtest6.o ixtest6.cc
+g++  -I.. -std=c++11 -DDATABASE_FOLDER=\"../cli/\" -g   -c -o ixtest6.o ixtest6.cc
 g++   ixtest6.o libix.a ../rbf/librbf.a  -lreadline -o ixtest6
-g++  -Wall -I.. -std=c++11 -DDATABASE_FOLDER=\"../cli/\" -g   -c -o ixtest7.o ixtest7.cc
+g++  -I.. -std=c++11 -DDATABASE_FOLDER=\"../cli/\" -g   -c -o ixtest7.o ixtest7.cc
 g++   ixtest7.o libix.a ../rbf/librbf.a  -lreadline -o ixtest7
-g++  -Wall -I.. -std=c++11 -DDATABASE_FOLDER=\"../cli/\" -g   -c -o ixtest8.o ixtest8.cc
+g++  -I.. -std=c++11 -DDATABASE_FOLDER=\"../cli/\" -g   -c -o ixtest8.o ixtest8.cc
 g++   ixtest8.o libix.a ../rbf/librbf.a  -lreadline -o ixtest8
-g++  -Wall -I.. -std=c++11 -DDATABASE_FOLDER=\"../cli/\" -g   -c -o ixtest_extra_1.o ixtest_extra_1.cc
+g++  -I.. -std=c++11 -DDATABASE_FOLDER=\"../cli/\" -g   -c -o ixtest_extra_1.o ixtest_extra_1.cc
 g++   ixtest_extra_1.o libix.a ../rbf/librbf.a  -lreadline -o ixtest_extra_1
-g++  -Wall -I.. -std=c++11 -DDATABASE_FOLDER=\"../cli/\" -g   -c -o ixtest_extra_2.o ixtest_extra_2.cc
+g++  -I.. -std=c++11 -DDATABASE_FOLDER=\"../cli/\" -g   -c -o ixtest_extra_2.o ixtest_extra_2.cc
 g++   ixtest_extra_2.o libix.a ../rbf/librbf.a  -lreadline -o ixtest_extra_2
-g++  -Wall -I.. -std=c++11 -DDATABASE_FOLDER=\"../cli/\" -g   -c -o ixtest_extra_2a.o ixtest_extra_2a.cc
+g++  -I.. -std=c++11 -DDATABASE_FOLDER=\"../cli/\" -g   -c -o ixtest_extra_2a.o ixtest_extra_2a.cc
 g++   ixtest_extra_2a.o libix.a ../rbf/librbf.a  -lreadline -o ixtest_extra_2a
-g++  -Wall -I.. -std=c++11 -DDATABASE_FOLDER=\"../cli/\" -g   -c -o ixtest_extra_2b.o ixtest_extra_2b.cc
+g++  -I.. -std=c++11 -DDATABASE_FOLDER=\"../cli/\" -g   -c -o ixtest_extra_2b.o ixtest_extra_2b.cc
 g++   ixtest_extra_2b.o libix.a ../rbf/librbf.a  -lreadline -o ixtest_extra_2b
-g++  -Wall -I.. -std=c++11 -DDATABASE_FOLDER=\"../cli/\" -g   -c -o ixtest_extra_2c.o ixtest_extra_2c.cc
+g++  -I.. -std=c++11 -DDATABASE_FOLDER=\"../cli/\" -g   -c -o ixtest_extra_2c.o ixtest_extra_2c.cc
 g++   ixtest_extra_2c.o libix.a ../rbf/librbf.a  -lreadline -o ixtest_extra_2c
-g++  -Wall -I.. -std=c++11 -DDATABASE_FOLDER=\"../cli/\" -g   -c -o ixtest_extra_2d.o ixtest_extra_2d.cc
+g++  -I.. -std=c++11 -DDATABASE_FOLDER=\"../cli/\" -g   -c -o ixtest_extra_2d.o ixtest_extra_2d.cc
 g++   ixtest_extra_2d.o libix.a ../rbf/librbf.a  -lreadline -o ixtest_extra_2d
 
 ****In Test Case 1****
@@ -59,18 +59,18 @@ IX_Test Case 1 passed
 ****In Test Case 2****
 Index File, age_idx Opened!
 
-Before Insert - readPageCount:28 writePageCount:0 appendPageCount:3
-After Insert - readPageCount:29 writePageCount:1 appendPageCount:3
+Before Insert - readPageCount:0 writePageCount:0 appendPageCount:0
+After Insert - readPageCount:1 writePageCount:1 appendPageCount:0
 Page I/O count of single insertion - readPage:1 writePageCount:1 appendPage:0
 
-Before scan - readPageCount:29 writePageCount:1 appendPageCount:3
+Before scan - readPageCount:1 writePageCount:1 appendPageCount:0
 Scan Opened Successfully!
 Returned rid from a scan: 100 101
-After scan - readPageCount:35 writePageCount:1 appendPageCount:3
+After scan - readPageCount:7 writePageCount:1 appendPageCount:0
 Page I/O count of scan - readPage:6 writePageCount:0 appendPage:0
 
-Before Delete - readPageCount:35 writePageCount:1 appendPageCount:3
-After Delete - readPageCount:36 writePageCount:2 appendPageCount:3
+Before Delete - readPageCount:7 writePageCount:1 appendPageCount:0
+After Delete - readPageCount:8 writePageCount:2 appendPageCount:0
 Page I/O count of single delete - readPage:1 writePageCount:1 appendPage:0
 
 Index File Closed Successfully!
@@ -154,11 +154,11 @@ IX_Test Case 5 passed
 Index File Created!
 Index File Opened!
 Scan Opened Successfully!
-returned rid: 1000 1000
+returned rid: 1500 1500
 returned rid: 500 500
+returned rid: 1000 1000
 returned rid: 2000 2000
 returned rid: 6000 5500
-returned rid: 1500 1500
 Scan Closed Successfully!
 Index File Closed Successfully!
 Index File Destroyed Successfully!
@@ -168,8 +168,8 @@ IX_Test Case 6 passed
 Index Created!
 Index File Opened!
 Scan Opened Successfully!
-returned rid: 1363 1363
-returned rid: 1318 1318
+returned rid: 3 3
+returned rid: 1998 1998
 Number of scanned entries: 2000
 Scan Closed Successfully!
 Index File Closed Successfully!
@@ -180,18 +180,225 @@ IX_Test Case 7 passed.
 Index Created!
 Index File Opened!
 Scan Opened Successfully!
-returned rid: 1862 1857
-returned rid: 1817 1812
+returned rid: 502 497
+returned rid: 2497 2492
 Number of scanned entries: 2000
 Scan Closed Successfully!
 Index File Closed Successfully!
 Index File Destroyed Successfully!
 IX_Test Case 8 passed
 
+****In Extra Test Case 1****
+Index Created!
+Index File Opened!
+Scan Opened Successfully!
+returned rid: 98 98
+returned rid: 124 124
+returned rid: 150 150
+returned rid: 176 176
+returned rid: 202 202
+returned rid: 228 228
+returned rid: 254 254
+returned rid: 306 306
+returned rid: 488 488
+returned rid: 540 540
+returned rid: 592 592
+returned rid: 644 644
+returned rid: 696 696
+returned rid: 748 748
+returned rid: 800 800
+returned rid: 852 852
+returned rid: 904 904
+returned rid: 956 956
+returned rid: 1008 1008
+returned rid: 1060 1060
+returned rid: 1112 1112
+returned rid: 1164 1164
+returned rid: 1216 1216
+returned rid: 1268 1268
+returned rid: 1320 1320
+returned rid: 1372 1372
+returned rid: 1424 1424
+returned rid: 1476 1476
+returned rid: 1528 1528
+returned rid: 1580 1580
+returned rid: 1632 1632
+returned rid: 1684 1684
+returned rid: 1736 1736
+returned rid: 1788 1788
+returned rid: 1840 1840
+returned rid: 1892 1892
+returned rid: 1944 1944
+returned rid: 1996 1996
+returned rid: 2048 2048
+returned rid: 2100 2100
+returned rid: 2152 2152
+returned rid: 2204 2204
+returned rid: 2256 2256
+returned rid: 2308 2308
+returned rid: 2360 2360
+returned rid: 2412 2412
+returned rid: 2464 2464
+returned rid: 2516 2516
+returned rid: 2568 2568
+returned rid: 2620 2620
+returned rid: 2672 2672
+returned rid: 2724 2724
+returned rid: 2776 2776
+returned rid: 2828 2828
+returned rid: 2880 2880
+returned rid: 2932 2932
+returned rid: 2984 2984
+returned rid: 3036 3036
+returned rid: 3088 3088
+returned rid: 3140 3140
+returned rid: 3192 3192
+returned rid: 3244 3244
+returned rid: 3296 3296
+returned rid: 3348 3348
+returned rid: 3400 3400
+returned rid: 3452 3452
+returned rid: 3504 3504
+returned rid: 3556 3556
+returned rid: 3608 3608
+returned rid: 3660 3660
+returned rid: 3712 3712
+returned rid: 3764 3764
+returned rid: 3816 3816
+returned rid: 3868 3868
+returned rid: 3920 3920
+returned rid: 3972 3972
+returned rid: 4024 4024
+returned rid: 4076 4076
+returned rid: 4128 4128
+returned rid: 4180 4180
+returned rid: 4232 4232
+returned rid: 4284 4284
+returned rid: 4336 4336
+returned rid: 4388 4388
+returned rid: 4440 4440
+returned rid: 4492 4492
+returned rid: 4544 4544
+returned rid: 4596 4596
+returned rid: 4648 4648
+returned rid: 4700 4700
+returned rid: 4752 4752
+returned rid: 4804 4804
+returned rid: 4856 4856
+returned rid: 4908 4908
+returned rid: 4960 4960
+returned rid: 4986 4986
+returned rid: 4934 4934
+returned rid: 4882 4882
+returned rid: 4830 4830
+returned rid: 4778 4778
+returned rid: 4726 4726
+returned rid: 4674 4674
+returned rid: 4622 4622
+returned rid: 4570 4570
+returned rid: 4518 4518
+returned rid: 4466 4466
+returned rid: 4414 4414
+returned rid: 4362 4362
+returned rid: 4310 4310
+returned rid: 4258 4258
+returned rid: 4206 4206
+returned rid: 4154 4154
+returned rid: 4102 4102
+returned rid: 4050 4050
+returned rid: 3998 3998
+returned rid: 3946 3946
+returned rid: 3894 3894
+returned rid: 3842 3842
+returned rid: 3790 3790
+returned rid: 3738 3738
+returned rid: 3686 3686
+returned rid: 3634 3634
+returned rid: 3582 3582
+returned rid: 3530 3530
+returned rid: 3478 3478
+returned rid: 3426 3426
+returned rid: 3374 3374
+returned rid: 3322 3322
+returned rid: 3270 3270
+returned rid: 3218 3218
+returned rid: 3166 3166
+returned rid: 3114 3114
+returned rid: 3062 3062
+returned rid: 3010 3010
+returned rid: 2958 2958
+returned rid: 2906 2906
+returned rid: 2854 2854
+returned rid: 2802 2802
+returned rid: 2750 2750
+returned rid: 2698 2698
+returned rid: 2646 2646
+returned rid: 2594 2594
+returned rid: 2542 2542
+returned rid: 2490 2490
+returned rid: 2438 2438
+returned rid: 2386 2386
+returned rid: 2334 2334
+returned rid: 2282 2282
+returned rid: 2230 2230
+returned rid: 2178 2178
+returned rid: 2126 2126
+returned rid: 2074 2074
+returned rid: 2022 2022
+returned rid: 1970 1970
+returned rid: 1918 1918
+returned rid: 1866 1866
+returned rid: 1814 1814
+returned rid: 1762 1762
+returned rid: 1710 1710
+returned rid: 1658 1658
+returned rid: 1606 1606
+returned rid: 1554 1554
+returned rid: 1502 1502
+returned rid: 1450 1450
+returned rid: 1398 1398
+returned rid: 1346 1346
+returned rid: 1294 1294
+returned rid: 1242 1242
+returned rid: 1190 1190
+returned rid: 1138 1138
+returned rid: 1086 1086
+returned rid: 1034 1034
+returned rid: 982 982
+returned rid: 930 930
+returned rid: 878 878
+returned rid: 826 826
+returned rid: 774 774
+returned rid: 722 722
+returned rid: 670 670
+returned rid: 618 618
+returned rid: 566 566
+returned rid: 514 514
+returned rid: 358 358
+returned rid: 384 384
+returned rid: 410 410
+returned rid: 462 462
+returned rid: 436 436
+returned rid: 332 332
+returned rid: 280 280
+returned rid: 46 46
+returned rid: 72 72
+returned rid: 20 20
+
+Scan Closed Successfully!
+Index File Closed Successfully!
+Index File Destroyed Successfully!
+IX_Test Extra Case 1 passed.
+
 ****In Extra Test Case 2****
 Index File Created!
 Index File Opened!
 Scan Opened Successfully!
+returned rid: 500 500
+returned rid: 400 400
+returned rid: 300 300
+returned rid: 200 200
+returned rid: 100 100
 
 Scan Closed Successfully!
 Scan Opened Successfully!
@@ -204,106 +411,106 @@ IX_Test Extra Case 2 passed.
 Index File Created!
 Index File Opened!
 Scan Opened Successfully!
-4 4
-8 8
-12 12
-16 16
-20 20
-24 24
-28 28
-32 32
-36 36
-40 40
-44 44
-48 48
-52 52
-56 56
-60 60
-64 64
-68 68
-72 72
-76 76
-80 80
-84 84
-88 88
-92 92
-96 96
-100 100
-3 3
-7 7
-11 11
-15 15
-19 19
-23 23
-27 27
-31 31
-35 35
-39 39
-43 43
-47 47
-51 51
-55 55
-59 59
-63 63
-67 67
-71 71
-75 75
-79 79
-83 83
-87 87
-91 91
-95 95
-99 99
-2 2
-6 6
-10 10
-14 14
-18 18
-22 22
-26 26
-30 30
-34 34
-38 38
-42 42
-46 46
-50 50
-54 54
-58 58
-62 62
-66 66
-70 70
-74 74
-78 78
-82 82
-86 86
-90 90
-94 94
-98 98
 1 1
+2 2
+3 3
+4 4
 5 5
+6 6
+7 7
+8 8
 9 9
+10 10
+11 11
+12 12
 13 13
+14 14
+15 15
+16 16
 17 17
+18 18
+19 19
+20 20
 21 21
+22 22
+23 23
+24 24
 25 25
+26 26
+27 27
+28 28
 29 29
+30 30
+31 31
+32 32
 33 33
+34 34
+35 35
+36 36
 37 37
+38 38
+39 39
+40 40
 41 41
+42 42
+43 43
+44 44
 45 45
+46 46
+47 47
+48 48
 49 49
+50 50
+51 51
+52 52
 53 53
+54 54
+55 55
+56 56
 57 57
+58 58
+59 59
+60 60
 61 61
+62 62
+63 63
+64 64
 65 65
+66 66
+67 67
+68 68
 69 69
+70 70
+71 71
+72 72
 73 73
+74 74
+75 75
+76 76
 77 77
+78 78
+79 79
+80 80
 81 81
+82 82
+83 83
+84 84
 85 85
+86 86
+87 87
+88 88
 89 89
+90 90
+91 91
+92 92
 93 93
+94 94
+95 95
+96 96
 97 97
+98 98
+99 99
+100 100
 
 Scan Closed Successfully!
 Scan Opened Successfully!
@@ -343,17 +550,29 @@ returned rid: 492 492
 returned rid: 496 496
 returned rid: 500 500
 returned rid: 451 451
+returned rid: 453 453
 returned rid: 455 455
+returned rid: 457 457
 returned rid: 459 459
+returned rid: 461 461
 returned rid: 463 463
+returned rid: 465 465
 returned rid: 467 467
+returned rid: 469 469
 returned rid: 471 471
+returned rid: 473 473
 returned rid: 475 475
+returned rid: 477 477
 returned rid: 479 479
+returned rid: 481 481
 returned rid: 483 483
+returned rid: 485 485
 returned rid: 487 487
+returned rid: 489 489
 returned rid: 491 491
+returned rid: 493 493
 returned rid: 495 495
+returned rid: 497 497
 returned rid: 499 499
 returned rid: 454 454
 returned rid: 458 458
@@ -367,17 +586,6 @@ returned rid: 486 486
 returned rid: 490 490
 returned rid: 494 494
 returned rid: 498 498
-returned rid: 453 453
-returned rid: 457 457
-returned rid: 461 461
-returned rid: 465 465
-returned rid: 469 469
-returned rid: 473 473
-returned rid: 477 477
-returned rid: 481 481
-returned rid: 485 485
-returned rid: 489 489
-returned rid: 493 493
 
 Scan Closed Successfully!
 Index File Closed Successfully!
@@ -439,55 +647,55 @@ Index Created!
 Index File Opened!
 Scan Opened Successfully!
 returned rid: 11434 11434
-returned rid: 627 627
-returned rid: 24141 24141
-returned rid: 21002 21002
-returned rid: 10125 10125
-returned rid: 26777 26777
-returned rid: 28543 28543
-returned rid: 24101 24101
-returned rid: 23767 23767
-returned rid: 20463 20463
-returned rid: 2186 2186
-returned rid: 10396 10396
-returned rid: 17164 17164
-returned rid: 3738 3738
-returned rid: 1226 1226
-returned rid: 11459 11459
-returned rid: 26471 26471
-returned rid: 16523 16523
-returned rid: 15950 15950
-returned rid: 20168 20168
-returned rid: 223 223
-returned rid: 28903 28903
-returned rid: 35551 35551
-returned rid: 29151 29151
-returned rid: 28762 28762
-returned rid: 22349 22349
-returned rid: 21059 21059
-returned rid: 28939 28939
-returned rid: 21054 21054
-returned rid: 8364 8364
-returned rid: 20094 20094
+returned rid: 27359 27359
+returned rid: 39757 39757
+returned rid: 2870 2870
+returned rid: 31006 31006
+returned rid: 130 130
+returned rid: 23078 23078
+returned rid: 26634 26634
+returned rid: 25625 25625
+returned rid: 18571 18571
+returned rid: 20112 20112
+returned rid: 39097 39097
+returned rid: 30791 30791
+returned rid: 36443 36443
+returned rid: 24980 24980
+returned rid: 23314 23314
+returned rid: 35264 35264
+returned rid: 9821 9821
+returned rid: 33209 33209
+returned rid: 778 778
+returned rid: 21071 21071
+returned rid: 14392 14392
+returned rid: 32652 32652
+returned rid: 22589 22589
+returned rid: 14582 14582
+returned rid: 35236 35236
+returned rid: 37121 37121
+returned rid: 28974 28974
+returned rid: 35463 35463
+returned rid: 81 81
+returned rid: 38427 38427
 Number of deleted entries: 30001
 Scan Closed Successfully!
 Scan Opened Successfully!
 
-returned rid: 34104 34104
-returned rid: 29100 29100
-returned rid: 1850 1850
-returned rid: 10491 10491
-returned rid: 25672 25672
-returned rid: 60730 60730
-returned rid: 22811 22811
-returned rid: 51826 51826
-returned rid: 36373 36373
-returned rid: 58201 58201
-returned rid: 37870 37870
-returned rid: 46273 46273
-returned rid: 15810 15810
-returned rid: 53989 53989
-returned rid: 20697 20697
+returned rid: 30724 30724
+returned rid: 68350 68350
+returned rid: 62029 62029
+returned rid: 17250 17250
+returned rid: 38147 38147
+returned rid: 23220 23220
+returned rid: 51487 51487
+returned rid: 26855 26855
+returned rid: 22531 22531
+returned rid: 65888 65888
+returned rid: 54537 54537
+returned rid: 20983 20983
+returned rid: 19530 19530
+returned rid: 43849 43849
+returned rid: 21581 21581
 Number of scanned entries: 15000
 Scan Closed Successfully!
 Index File Closed Successfully!

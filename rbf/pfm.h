@@ -49,10 +49,13 @@ public:
     void setFile(FILE *filestream);                             //set file pointer
     FILE* getFile();                                            //get file pointer
     void setPageNumber(unsigned number);                        //set pageNumber
-
+    RC collectCounterValues(unsigned &readPageCount, unsigned &writePageCount, unsigned &appendPageCount);
 private:
     FILE *file;
     unsigned pageNumber;
+    unsigned readPageCounter;
+    unsigned writePageCounter;
+    unsigned appendPageCounter;
  };
 
  #endif

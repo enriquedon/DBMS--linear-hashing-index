@@ -105,6 +105,9 @@ FileHandle::FileHandle()
 {
     file = NULL;
     pageNumber = 0;
+    writePageCounter=0;
+    readPageCounter=0;
+    appendPageCounter=0;
 }
 
 FileHandle::~FileHandle()
@@ -131,6 +134,7 @@ RC FileHandle::readPage(PageNum pageNum, void *data)
         fseek(file, (pageNum)*PAGE_SIZE, SEEK_SET);
       //  fseek(file, (pageNum-1)*PAGE_SIZE, SEEK_SET);
         fread(data, PAGE_SIZE,1,file);
+        readPageCounter++;
         return 0;
     }
     catch(int e)
@@ -178,6 +182,7 @@ RC FileHandle::writePage(PageNum pageNum, const void *data)
         fseek(file, (pageNum)*PAGE_SIZE, SEEK_SET);
         fwrite(data,PAGE_SIZE,1,file);
         fflush(file);
+        writePageCounter++;
         return 0;
     }
     catch(int e)
@@ -196,6 +201,7 @@ RC FileHandle::appendPage(const void *data)
         fwrite(data, PAGE_SIZE, 1, file);
         fflush(file);
         pageNumber++;
+        appendPageCounter++;
         return 0;
     }
  catch(int e)
@@ -207,6 +213,13 @@ RC FileHandle::appendPage(const void *data)
 unsigned FileHandle::getNumberOfPages()
 {
     return pageNumber;
+}
+RC FileHandle::collectCounterValues(unsigned &readPageCount, unsigned &writePageCount, unsigned &appendPageCount)
+{
+    readPageCount = readPageCounter;
+    writePageCount = writePageCounter;
+    appendPageCount = appendPageCounter;
+    return 0;
 }
 
 

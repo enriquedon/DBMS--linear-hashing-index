@@ -4,11 +4,6 @@
 #include <vector>
 #include <string>
 #include <map>
-#include <unistd.h>
-#include <sys/types.h>
-#include <iostream>
-#include <bitset>
-#include <math.h>
 #include "../rbf/rbfm.h"
 
 # define IX_EOF (-1)  // end of the index scan
@@ -17,18 +12,17 @@
 
 class IX_ScanIterator;
 class IXFileHandle;
-
-typedef enum 
+typedef enum
 {
-  SUCCESS = 0,
-  SCAN_EOF = -1,
-  CREATE_FILE_ERROR = -10,
-  DESTROY_FILE_ERROR = -11,
-  OPEN_FILE_ERROR = -12,
-  CLOSE_FILE_ERROR = -13,
-  ENTRY_NOT_EXIST = -20,
-  GET_ATTRIBUTES_ERROR = -21,
-  WRONG_ATTRIBUTENAME = -22
+    SUCCESS = 0,
+    SCAN_EOF = -1,
+    CREATE_FILE_ERROR = -10,
+    DESTROY_FILE_ERROR = -11,
+    OPEN_FILE_ERROR = -12,
+    CLOSE_FILE_ERROR = -13,
+    ENTRY_NOT_EXIST = -20,
+    GET_ATTRIBUTES_ERROR = -21,
+    WRONG_ATTRIBUTENAME = -22
 } IXErrorCode;
 
 class IndexManager {
@@ -101,8 +95,7 @@ public:
 			const Attribute &attribute, const unsigned &primaryPageNumber);
 	int printEntriesInPrim(FileHandle &fhPrim, const Attribute &attribute,
 			void *page);
-	int printEntriesInMeta(FileHandle &fhMeta, const Attribute &attribute,
-			int &overflowPageNo);
+	int printEntriesInMeta(FileHandle &fhMeta,const Attribute &attribute, int &OverflowPageNo);
 	//int IntRealPrint(FileHandle &fhPrim, void *page);
 	int IntRealPrint(void *page);
 	int VarCharPrint(void *page);
@@ -118,70 +111,71 @@ private:
 	RC initiatePrim(string primFile, const unsigned &numberOfPages);
 	RC getLevelNext(IXFileHandle &ixfileHandle);
 	map<string, vector<int> > attributeTable;   //level, next, hashBits
-
-	int findInsertPosition(const void *key, const Attribute attribute,
-			vector<void *> &page, int totalNumber);
-	int findDeletePosition(int start, const void *key, const RID &rid,
-			const Attribute attribute, vector<void *> &page, int totalNumber);
-	int insertToPage(int position, vector<int> &pageNumbers, const void *key,
-			const Attribute attribute, vector<void *> &page, const RID &rid);
-	int writeToPages(IXFileHandle &ixfileHandle, FileHandle &metaFile,
-			FileHandle &primFile, int startPage, vector<void*> &page,
-			vector<int> &pagePosition, int nextPageNumber);
-	int deleteFromPages(int position, vector<int> &pageNumbers, const void *key,
-			const Attribute attribute, vector<void *> &page, const RID &rid);
+    int findInsertPosition(const void *key, const Attribute attribute, vector<void *> &page, int totalNumber,vector<int> pagenumbers);
+    int findDeletePosition(int start,const void *key, const RID &rid, const Attribute attribute, vector<void *> &page, int totalNumber);
+    int insertToPage(int position, vector<int> &pageNumbers, const void *key, const Attribute attribute, vector<void *> &page,const RID &rid);
+    int writeToPages(IXFileHandle &ixfileHandle, FileHandle &metaFile, FileHandle &primFile, int startPage, vector<void*> &page, vector<int> &pagePosition, int nextPageNumber);
+    int deleteFromPages(int position, vector<int> &pageNumbers, const void *key, const Attribute attribute, vector<void *> &page, const RID &rid);
+    /*
     string getVarcharValue(void* data, int offset);
+    
     int getVarcharSlot(void *slotData, void* data, int offset);
-    bool checkVarcharFull(int datasize, int length, void *data);
-    int getVarcharOffset(void* data, int offset);
+    */
+     bool checkVarcharFull(int slotnumber, int length, void *data);
+    
+   //  int getVarcharOffset(void* data, int offset);
     void moveVarChardir(int start, int end, int slotlength, void *data);
-    void insertTailTopage(void *tailData,vector<int> &tailLengths,int taillength,int currentPage,vector<void*> &page,vector<int> &pageNumbers);
-    int getVarcharTailData(void *pagedata, int length, vector<int> &tailLengths, void* tailData);
+    void  insertTailTopage(void *tailData,vector<int> &tailLengths,int taillength,int currentPage,vector<void*> &page,vector<int> &pageNumbers);
+    int getVarcharTailData(void *pagedata, int taillength, vector<int> &tailLengths, void* tailData);
+    void middleTopage(int middle, vector<int>pageNumbers, int&offset, int&pageNum);
 
-
-
-	RC split(const Attribute &attribute, string attributeName,
-			FileHandle &metaFileHandle, FileHandle &primaryFileHandle);
-
-	RC reinsertData(const Attribute &attribute, vector<void *> &oldPages,
-			FileHandle &primaryFileHandle, FileHandle &metaFileHandle,vector<int> usedOFnumber);
-	RC splitGetEntry(void *entry, const Attribute &attribute, void *oldPage,
-			int i);
-	RC splitInsertEntry(const Attribute &attribute, void *entry, void *oldPage,
-			vector<void *> &newPages1, vector<void *> &newPages2);
-	RC splitInsertOneIntReal(const Attribute &attribute, void *entry,
-			vector<void *> &newPages1, vector<void *> &newPages2);
-	RC splitInsertVarChar(const Attribute &attribute, void *entry,
-			 vector<void *> &newPages1, vector<void *> &newPages2);
-	unsigned remainsForVarchar(void* page, unsigned &freePostion,
-			unsigned &Entries);
-	RC writeRehashedPages(const Attribute &attribute, FileHandle &primaryFileHandle, FileHandle &metaFileHandle, vector<void *> &newPages1,
-			vector<void *> &newPages2,vector<int> usedOFnumber);
-	RC writeOverflow(FileHandle &metaFileHandle,vector<void*> &newPages2,int &numOfOverflowPages,vector<int> &usedOFnumber,int &used);
-
-	RC updateMetaAfterSplit(string attributeName, int level, int next);
-	RC merge(const Attribute &attribute, string attributeName,
-			FileHandle &primaryFileHandle, FileHandle &metaFileHandle);
-	RC prepareMerge(FileHandle &metaFileHandle, vector<void *> &oldPages,
-			void *pagePrim,vector<int> &usedOFnumber);
-	RC sortMerge(const Attribute attribute, vector<void *> &oldPages1,
-			vector<void *> &oldPages2, vector<void *> &newpages);
-	RC mergeGetEntry(void *entry1, const Attribute &attribute, void* oldPage1,
-			int i);
-	RC mergeCompareEntry(const Attribute &attribute, void *entry1,
-			void *entry2);
-	RC mergeInsertWinner(const Attribute &attribute, void * entry,
-			vector<void*> &newPages);
-	RC mergeInsertOneIntReal(const Attribute &attribute, void * entry,
-			vector<void*> &newPages);
-	RC mergeInsertVarChar(const Attribute &attribute, void * entry,
-			vector<void*> &newPages);
-	RC appendRemainPages(const Attribute attribute, vector<void *> &oldPages, vector<void *> &newpages,int j,int size);
-	RC writeMergedPages(vector<void *> &newPages, FileHandle &primaryFileHandle, FileHandle &metaFileHandle , int hashvalue1,vector<int> &usedOFnumber);
-	RC updateMetaAfterMerge(string attributeName, int level, int next);
-
-	RC freeVector(vector<void *> &newPages);
-
+    
+    
+    
+    
+    RC split(const Attribute &attribute, string attributeName,
+             FileHandle &metaFileHandle, FileHandle &primaryFileHandle);
+    
+    RC reinsertData(const Attribute &attribute, vector<void *> &oldPages,
+                    FileHandle &primaryFileHandle, FileHandle &metaFileHandle,vector<int> usedOFnumber);
+    RC splitGetEntry(void *entry, const Attribute &attribute, void *oldPage,
+                     int i);
+    RC splitInsertEntry(const Attribute &attribute, void *entry, void *oldPage,
+                        vector<void *> &newPages1, vector<void *> &newPages2);
+    RC splitInsertOneIntReal(const Attribute &attribute, void *entry,
+                             vector<void *> &newPages1, vector<void *> &newPages2);
+    RC splitDoIntReal(void *entry,vector<void *> &newPages);
+    RC splitInsertVarChar(const Attribute &attribute, void *entry,
+                          vector<void *> &newPages1, vector<void *> &newPages2);
+    RC splitDoInsChar(void *entry,vector<void *> &newPages, int lenOfKey);
+    unsigned remainsForVarchar(void* page, unsigned &freePostion,
+                               unsigned &Entries);
+    RC writeRehashedPages(const Attribute &attribute, FileHandle &primaryFileHandle, FileHandle &metaFileHandle, vector<void *> &newPages1,
+                          vector<void *> &newPages2,vector<int> usedOFnumber);
+    RC writeOverflow(FileHandle &metaFileHandle,vector<void*> &newPages2,int &numOfOverflowPages,vector<int> &usedOFnumber,int &used);
+    
+    RC updateMetaAfterSplit(string attributeName, int level, int next);
+    RC merge(const Attribute &attribute, string attributeName,
+             FileHandle &primaryFileHandle, FileHandle &metaFileHandle);
+    RC prepareMerge(FileHandle &metaFileHandle, vector<void *> &oldPages,
+                    void *pagePrim,vector<int> &usedOFnumber);
+    RC sortMerge(const Attribute attribute, vector<void *> &oldPages1,
+                 vector<void *> &oldPages2, vector<void *> &newpages);
+    RC mergeGetEntry(void *entry1, const Attribute &attribute, void* oldPage1,
+                     int i);
+    RC mergeCompareEntry(const Attribute &attribute, void *entry1,
+                         void *entry2);
+    RC mergeInsertWinner(const Attribute &attribute, void * entry,
+                         vector<void*> &newPages);
+    RC mergeInsertOneIntReal(const Attribute &attribute, void * entry,
+                             vector<void*> &newPages);
+    RC mergeInsertVarChar(const Attribute &attribute, void * entry,
+                          vector<void*> &newPages);
+    RC appendRemainPages(const Attribute attribute, vector<void *> &oldPages, vector<void *> &newpages,int j,int size);
+    RC writeMergedPages(vector<void *> &newPages, FileHandle &primaryFileHandle, FileHandle &metaFileHandle , int hashvalue1,vector<int> &usedOFnumber);
+    RC updateMetaAfterMerge(string attributeName, int level, int next);
+    
+    RC freeVector(vector<void *> &newPages);
 };
 
 class IX_ScanIterator {
@@ -197,10 +191,12 @@ public:
     RC close();             						// Terminate index scan
 private:
     RC exactMatch(RID &rid, void *key);
+    
     RC rangeMatch(RID &rid, void *key);
+    
     IXFileHandle *ixfileHandle;
-    FileHandle metaFile;
-    FileHandle primeFile;
+    FileHandle *metaFile;
+    FileHandle *primeFile;
     Attribute attribute;
     int keySize;
     void *lowKey;

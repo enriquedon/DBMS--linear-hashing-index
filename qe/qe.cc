@@ -1,10 +1,50 @@
 
 #include "qe.h"
+#include <iostream>
+using namespace std;
 
 Filter::Filter(Iterator* input, const Condition &condition)
 {
     cond=condition;
     initer=input;
+}
+void freeVector(vector<void *> &newPages) {
+    for (unsigned i =0; i<newPages.size(); i++) {
+        free(newPages[i]);
+    }
+}
+int printRecord(const vector<Attribute> &recordDescriptor, const void *data) {
+    int *in;
+    float *fl;
+    char *ch;
+    int offset = 0;
+    try {
+        for (unsigned i = 0; i < recordDescriptor.size(); i++) {
+            switch (recordDescriptor[i].type) {
+                case 0:
+                    in = (int *) ((char *) data + offset);
+                    cout << *in << "\n";
+                    offset += sizeof(int);
+                    break;
+                case 1:
+                    fl = (float *) ((char *) data + offset);
+                    cout << *fl << "\n";
+                    offset += sizeof(int);
+                    break;
+                case 2:
+                    in = (int *) ((char *) data + offset);
+                    ch = (char *) data + offset + sizeof(int);
+                    for (int j = 0; j < *in; j++)
+                        cout << *(ch + j);
+                    cout << "\n";
+                    offset += *in + sizeof(int);
+                    break;
+            }
+        }
+        return 0;
+    } catch (int e) {
+        return e;
+    }
 }
 template <class T>
 bool check(T a,T b,CompOp compOp)
@@ -210,12 +250,19 @@ RC Aggregate::getNextTuple(void *data)
         while(initer->getNextTuple(record)!=-1)
         {
             getAttrFromRecord(recordDescriptor,agg.name,tmp,record);
-            func(data,tmp,op,agg);
+            calculate(data,tmp,op,agg);
             count++;
         }
         if(op==AVG)
         {
-            *(float *)data=(*(float *)data)/count;
+            if (agg.type==1) {
+                *(float *)data=(*(float *)data)/count;
+            }
+            else
+            {
+                float tmp = (float)*(int*)data;
+                *(float*)data = tmp/count;
+            }
         }
         if(op==COUNT)
         {
@@ -228,7 +275,7 @@ RC Aggregate::getNextTuple(void *data)
     else
         return -1;
 }
-void Aggregate::func(void *record,void * tmp,AggregateOp op,Attribute agg)
+void Aggregate::calculate(void *record,void * tmp,AggregateOp op,Attribute agg)
 {
     if(op==MIN)
     {
@@ -251,6 +298,92 @@ void Aggregate::func(void *record,void * tmp,AggregateOp op,Attribute agg)
         if(agg.type==1)
             *(float *)record+=*(float *)tmp;
     }
+}
+
+int getRecordLength(const vector<Attribute> &recordDescription, const void *data)
+{
+    unsigned size = recordDescription.size();
+    unsigned offset = 0;
+    for (int i = 0; i < size; i++) {
+        if (recordDescription[i].length == -1) {
+            continue;
+        }
+        if (recordDescription[i].type == 0) {
+            offset += sizeof(int);
+        } else if (recordDescription[i].type == 1) {
+            offset += sizeof(float);
+        } else {
+            int varLength;
+            memcpy(&varLength, (char *) data + offset, sizeof(int));
+            offset = offset + sizeof(int) + varLength;
+        }
+    }
+    return offset;
+}
+
+bool checkSat(vector<Attribute> leftAttrdes, vector<Attribute> rightAttrdes, void* leftrecord, void* rightrecord, Condition cond)
+{
+    int leftpos=0,rightpos=0;
+    for(leftpos=0;leftpos<leftAttrdes.size();leftpos++)
+    {
+        if(leftAttrdes[leftpos].name==cond.lhsAttr)
+            break;
+    }
+    for(rightpos=0;rightpos<rightAttrdes.size();rightpos++)
+    {
+        if(rightAttrdes[rightpos].name==cond.rhsAttr)
+            break;
+    }
+    void *leftAttr=malloc(PAGE_SIZE);
+    void *rightAttr=malloc(PAGE_SIZE);
+    getAttrFromRecord(leftAttrdes,cond.lhsAttr,leftAttr,leftrecord);
+    getAttrFromRecord(rightAttrdes,cond.rhsAttr,rightAttr,rightrecord);
+    bool result= ifSatisfy(cond.op,rightAttr,leftAttr,leftAttrdes[leftpos].type);
+    free(leftAttr);
+    free(rightAttr);
+    return result;
+}
+
+BNLJoin::BNLJoin(Iterator *leftIn,TableScan *rightIn,const Condition &condition, const unsigned numRecords)
+{
+    left=leftIn;
+    right=rightIn;
+    cond=condition;
+    numRec = numRecords;
+    leftIn->getAttributes(leftdes);
+    rightIn->getAttributes(rightdes);
+    leftdata=malloc(PAGE_SIZE);
+    void *tmprecord=malloc(PAGE_SIZE);
+    while(right->getNextTuple(tmprecord)!=-1)
+    {
+        int tmplength =getRecordLength(rightdes, tmprecord);
+        void *rightrecord = malloc(tmplength);
+        memcpy(rightrecord, tmprecord, tmplength);
+        records.push_back(rightrecord);
+    }
+    free(tmprecord);
+}
+RC BNLJoin::getNextTuple(void *data)
+{
+    if (left->getNextTuple(leftdata)==-1) {
+        return -1;
+    }
+    do
+    {
+        for (int rightrecord=0; rightrecord<records.size(); rightrecord++) {
+            if(checkSat(leftdes, rightdes, leftdata, records[rightrecord], cond))
+            {
+                int leftLength= getRecordLength(leftdes, leftdata);
+                memcpy(data,leftdata,leftLength);
+                int rightLength= getRecordLength(rightdes, records[rightrecord]);
+                memcpy((char *)data+leftLength,records[rightrecord],rightLength);
+                return 0;
+            }
+        }
+    }
+    while(left->getNextTuple(leftdata)!=-1);
+    freeVector(records);
+    return -1;
 }
 
 

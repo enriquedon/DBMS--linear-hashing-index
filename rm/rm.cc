@@ -375,7 +375,7 @@ RC RelationManager::getAllIndex(const string &tableName,
 	FileHandle fileHandle;
 	RC success = rbfm->openFile(IndexCatalog, fileHandle);
 	if (success == -1) {
-		IX_PrintError(OPEN_FILE_ERROR);
+		//IX_PrintError(OPEN_FILE_ERROR);
 		return -1;
 	}
 	RID Irid;
@@ -445,7 +445,7 @@ RC RelationManager::DeleteInsertIndexes(vector<Attribute> attrs,
 			RC success = DelInsIndex(attrs[i], indexFileName, offset, data, rid,
 					DI);
 			if (success == -1) {
-				IX_PrintError(OPEN_FILE_ERROR);
+				//IX_PrintError(OPEN_FILE_ERROR);
 				return -1;
 			}
 			updateOffsetForAttrs(attrs[i], offset, data);
@@ -494,14 +494,14 @@ RC RelationManager::insertTuple(const string &tableName, const void *data,
 	vector<Attribute> attrs;
 	if (getAttributes(tableName, attrs) != 0) {
 		attrs.clear();
-		IX_PrintError(GET_ATTRIBUTES_ERROR);
+		//IX_PrintError(GET_ATTRIBUTES_ERROR);
 		return -1;
 	}
 
 	FileHandle fileHandle;
 	if (rbfm->openFile(tableName, fileHandle) != 0) {
 		attrs.clear();
-		IX_PrintError(OPEN_FILE_ERROR);
+		//IX_PrintError(OPEN_FILE_ERROR);
 		return -1;
 	}
 	rbfm->insertRecord(fileHandle, attrs, data, rid);
@@ -524,12 +524,12 @@ RC RelationManager::deleteTuples(const string &tableName) {
 	FileHandle fileHandle;
 	if (rbfm->openFile(tableName, fileHandle) != 0) {
 		attrs.clear();
-		IX_PrintError(OPEN_FILE_ERROR);
+		//IX_PrintError(OPEN_FILE_ERROR);
 		return -1;
 	}
 	if (getAttributes(tableName, attrs) != 0) {
 		attrs.clear();
-		IX_PrintError(GET_ATTRIBUTES_ERROR);
+		//IX_PrintError(GET_ATTRIBUTES_ERROR);
 		return -1;
 	}
 	attrs.clear();
@@ -545,13 +545,13 @@ RC RelationManager::deleteTuple(const string &tableName, const RID &rid) {
 	vector<Attribute> attrs = *(new vector<Attribute>());
 	if (getAttributes(tableName, attrs) != 0) {
 		attrs.clear();
-		IX_PrintError(GET_ATTRIBUTES_ERROR);
+		//IX_PrintError(GET_ATTRIBUTES_ERROR);
 		return -1;
 	}
 	FileHandle fileHandle;
 	if (rbfm->openFile(tableName, fileHandle) != 0) {
 		attrs.clear();
-		IX_PrintError(OPEN_FILE_ERROR);
+		//IX_PrintError(OPEN_FILE_ERROR);
 		return -1;
 	}
 
@@ -889,22 +889,15 @@ RC RelationManager::indexScan(const string &tableName,
 	IXFileHandle ixfileHandle;
 	Attribute attribute;
 	vector<Attribute> attrs;
-	if(getAttributes(tableName, attrs)!=0){
-		IX_PrintError(GET_ATTRIBUTES_ERROR);
-		return -1;
-	}
+	getAttributes(tableName, attrs);
 	for (unsigned i = 0; i < sizeof(attrs); i++) {
 		if (attrs[i].name == attributeName) {
 			attribute = attrs[i];
 			break;
 		}
-		if(i==sizeof(attrs)){
-			IX_PrintError(WRONG_ATTRIBUTENAME);
-		}
 	}
-	if(ix->openFile(tableName, ixfileHandle)!=0){
-		IX_PrintError(OPEN_FILE_ERROR);
-	}
+	ix->openFile(tableName, ixfileHandle);
+
 	return ix->scan(ixfileHandle, attribute, lowKey, highKey, lowKeyInclusive,
 			highKeyInclusive, ix_ScanIterator);
 }

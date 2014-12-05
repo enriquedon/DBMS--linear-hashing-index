@@ -13,7 +13,7 @@ make
 ./ixtest6
 ./ixtest7
 ./ixtest8
-#./ixtest_extra_1
+./ixtest_extra_1
 ./ixtest_extra_2
 ./ixtest_extra_2a
 ./ixtest_extra_2b

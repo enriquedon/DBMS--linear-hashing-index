@@ -253,14 +253,31 @@ class BNLJoin : public Iterator {
                TableScan *rightIn,           // TableScan Iterator of input S
                const Condition &condition,   // Join condition
                const unsigned numRecords     // # of records can be loaded into memory, i.e., memory block size (decided by the optimizer)
-        ){};
+        );
         ~BNLJoin(){};
 
-        RC getNextTuple(void *data){return QE_EOF;};
+        RC getNextTuple(void *data);
         // For attribute in vector<Attribute>, name it as rel.attr
-        void getAttributes(vector<Attribute> &attrs) const{};
+        void getAttributes(vector<Attribute> &attrs) const
+        {
+            attrs.clear();
+            for(int i=0;i<leftdes.size();i++)
+                attrs.push_back(leftdes[i]);
+            for(int i=0;i<rightdes.size();i++)
+                attrs.push_back(rightdes[i]);
+        };
+    private:
+        Iterator *left;
+        TableScan *right;
+        Condition cond;
+        Attribute rightAttr;
+        Attribute leftAttr;
+        unsigned numRec;
+        void *leftdata;
+        vector<void*> records;
+        vector <Attribute> rightdes,leftdes;
+    
 };
-
 
 class INLJoin : public Iterator {
     // Index nested-loop join operator
@@ -275,7 +292,6 @@ class INLJoin : public Iterator {
         // For attribute in vector<Attribute>, name it as rel.attr
         void getAttributes(vector<Attribute> &attrs) const{};
 };
-
 
 
 class Aggregate : public Iterator {
@@ -302,8 +318,36 @@ class Aggregate : public Iterator {
         // Please name the output attribute as aggregateOp(aggAttr)
         // E.g. Relation=rel, attribute=attr, aggregateOp=MAX
         // output attrname = "MAX(rel.attr)"
-        void getAttributes(vector<Attribute> &attrs) const{};
-        void func(void *record,void * tmp,AggregateOp op,Attribute agg);
+        void calculate(void *record,void * tmp,AggregateOp op,Attribute agg);
+        void getAttributes(vector<Attribute> &attrs) const
+        {
+            attrs.clear();
+            Attribute tmp;
+            tmp.length = sizeof(int);
+            if(op==COUNT)
+            {
+                tmp.name="COUNT";
+                tmp.type=TypeInt;
+                attrs.push_back(tmp);
+            }
+            if(op==AVG)
+            {
+                tmp.name="AVG";
+                tmp.type=TypeReal;
+                attrs.push_back(tmp);
+            }
+            if(op==SUM||op==MAX||op==MIN)
+            {
+                if(op==SUM)
+                    tmp.name="SUM";
+                if(op==MAX)
+                    tmp.name="MAX";
+                if(op==MIN)
+                    tmp.name="MIN";
+                tmp.type=agg.type;
+                attrs.push_back(tmp);
+            }
+        };
     private:
         Iterator *initer;
         Attribute agg;
