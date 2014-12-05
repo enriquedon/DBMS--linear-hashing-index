@@ -1177,7 +1177,7 @@ unsigned IndexManager::remainsForVarchar(void* page, unsigned &freePosition,
     memcpy(&Entries, (char *) page + PAGE_SIZE - sizeof(int) * 2, sizeof(int));
 
     memcpy(&freePosition,
-           (char *) (page + PAGE_SIZE - sizeof(int) * (2 + Entries + 1)),
+           (char *)page + PAGE_SIZE - sizeof(int) * (2 + Entries + 1),
            sizeof(int));
     return PAGE_SIZE - (freePosition + sizeof(int) * (2 + Entries + 1));
 }

@@ -885,7 +885,6 @@ RC RelationManager::indexScan(const string &tableName,
 		bool lowKeyInclusive, bool highKeyInclusive,
 		RM_IndexScanIterator &rm_IndexScanIterator) {
 
-	IX_ScanIterator ix_ScanIterator;
 	IXFileHandle ixfileHandle;
 	Attribute attribute;
 	vector<Attribute> attrs;
@@ -897,8 +896,7 @@ RC RelationManager::indexScan(const string &tableName,
 		}
 	}
 	ix->openFile(tableName, ixfileHandle);
-
 	return ix->scan(ixfileHandle, attribute, lowKey, highKey, lowKeyInclusive,
-			highKeyInclusive, ix_ScanIterator);
+                    highKeyInclusive, rm_IndexScanIterator.rmindexscaner);
 }
 

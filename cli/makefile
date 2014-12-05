@@ -79,8 +79,10 @@ $(CODEROOT)/qe/libqe.a:
 
 .PHONY: clean
 clean:
+	-rm Columns Tables ages salary employee   
 	-rm clitest_01 clitest_02 clitest_03 clitest_04 clitest_05 clitest_06 clitest_07 clitest_08 clitest_09 clitest_10 clitest_11 clitest_12 start *.a *.o *~
 	$(MAKE) -C $(CODEROOT)/rbf clean
 	$(MAKE) -C $(CODEROOT)/rm clean
 	$(MAKE) -C $(CODEROOT)/ix clean
 	$(MAKE) -C $(CODEROOT)/qe clean
+
