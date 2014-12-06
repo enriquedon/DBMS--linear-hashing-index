@@ -311,7 +311,7 @@ class Aggregate : public Iterator {
                   Attribute groupAttr,         // The attribute over which we are grouping the tuples
                   AggregateOp op,              // Aggregate operation
                   const unsigned numPartitions // Number of partitions for input (decided by the optimizer)
-        ){};
+        );
         ~Aggregate(){};
 
         RC getNextTuple(void *data);
@@ -322,6 +322,10 @@ class Aggregate : public Iterator {
         void getAttributes(vector<Attribute> &attrs) const
         {
             attrs.clear();
+            if(grouped)
+            {
+                attrs.push_back(grAttr);
+            }
             Attribute tmp;
             tmp.length = sizeof(int);
             if(op==COUNT)
@@ -349,11 +353,20 @@ class Aggregate : public Iterator {
             }
         };
     private:
+    
         Iterator *initer;
         Attribute agg;
         bool grouped;
-        //Attribute grAttr;
+        Attribute grAttr;
         AggregateOp op;
+        int currentPosition;
+        map <int, pair<void *, int> > intmap;
+        map <float,pair<void *, int> > floatmap;
+        map <string, pair<void *, int> > stringmap;
+        vector <pair<int, pair<void *, int> > > intvector;
+        vector <pair<float,pair<void *, int> > > floatvector;
+        vector <pair<string, pair<void *, int> > > stringvector;
+
     
 };
 

@@ -12,7 +12,7 @@ RelationManager* RelationManager::instance() {
 
 RelationManager::RelationManager() {
 
-	pfm = PagedFileManager::instance();
+	//pfm = PagedFileManager::instance();
 	rbfm = RecordBasedFileManager::instance();
 	ix = IndexManager::instance();
 	MaxTableId = 0;

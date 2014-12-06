@@ -37,7 +37,6 @@ int testCase_extra_1(const string &indexFileName, const Attribute &attribute)
     char key[100];
     unsigned count;
 
-    rc = indexManager->destroyFile(indexFileName);
     //create index file
     rc = indexManager->createFile(indexFileName, numberOfPages);
     if(rc == success)

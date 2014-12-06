@@ -273,7 +273,106 @@ RC Aggregate::getNextTuple(void *data)
         return 0;
     }
     else
-        return -1;
+    {
+        
+        if(grAttr.type==0)
+        {
+            if(currentPosition<intvector.size())
+            {
+                memcpy(data,&(intvector[currentPosition].first),sizeof(int));
+                if(op==AVG)
+                {
+                    float tmp;
+                    if (agg.type==1) {
+                        tmp = (float)*(float *)intvector[currentPosition].second.first/intvector[currentPosition].second.second;
+                    }
+                    else
+                    {
+                        tmp = (float)*(int*)intvector[currentPosition].second.first/intvector[currentPosition].second.second;
+                    }
+                    memcpy((char*)data+sizeof(int),&tmp,sizeof(int));
+                }
+                else if(op==COUNT)
+                {
+                    memcpy((char*)data+sizeof(int),(char*)intvector[currentPosition].second.second,sizeof(int));
+                }
+                else
+                {
+                    memcpy((char*)data+sizeof(int),(char*)intvector[currentPosition].second.first,sizeof(int));
+                }
+                currentPosition++;
+                return 0;
+            }
+            return -1;
+        }
+        if(grAttr.type==1)
+        {
+            
+            if(currentPosition<floatvector.size())
+            {
+                memcpy(data,&(floatvector[currentPosition].first),sizeof(int));
+                if(op==AVG)
+                {
+                    float tmp;
+                    if (agg.type==1) {
+                        tmp = (float)*(float *)floatvector[currentPosition].second.first/floatvector[currentPosition].second.second;
+                    }
+                    else
+                    {
+                        tmp = (float)*(int*)floatvector[currentPosition].second.first/floatvector[currentPosition].second.second;
+                    }
+                    memcpy((char*)data+sizeof(int),&tmp,sizeof(int));
+                }
+                else if(op==COUNT)
+                {
+                    memcpy((char*)data+sizeof(int),(char*)floatvector[currentPosition].second.second,sizeof(int));
+                }
+                else
+                {
+                    memcpy((char*)data+sizeof(int),(char*)floatvector[currentPosition].second.first,sizeof(int));
+                }
+                currentPosition++;
+                return 0;
+            }
+            return -1;
+             
+        }
+        else
+        {
+            if(currentPosition<stringvector.size())
+            {
+                int stringsize=stringvector[currentPosition].first.size();
+                const char * str = stringvector[currentPosition].first.c_str();
+                memcpy(data,&stringsize,sizeof(int));
+                memcpy((char*)data+sizeof(int),str,stringsize);
+                if(op==AVG)
+                {
+                    float tmp;
+                    if (agg.type==1) {
+                        tmp = (float)*(float *)stringvector[currentPosition].second.first/stringvector[currentPosition].second.second;
+                    }
+                    else
+                    {
+
+                        tmp = (float)*(int*)stringvector[currentPosition].second.first/stringvector[currentPosition].second.second;
+
+                    }
+                    memcpy((char*)data+sizeof(int)+stringsize,&tmp,sizeof(int));
+                }
+                else if(op==COUNT)
+                {
+                    memcpy((char*)data+sizeof(int)+stringsize,(char*)stringvector[currentPosition].second.second,sizeof(int));
+                }
+                else
+                {
+                    memcpy((char*)data+sizeof(int)+stringsize,(char*)stringvector[currentPosition].second.first,sizeof(int));
+                }
+                currentPosition++;
+                return 0;
+            }
+            return -1;
+        }
+    }
 }
 void Aggregate::calculate(void *record,void * tmp,AggregateOp op,Attribute agg)
 {
@@ -298,6 +397,81 @@ void Aggregate::calculate(void *record,void * tmp,AggregateOp op,Attribute agg)
         if(agg.type==1)
             *(float *)record+=*(float *)tmp;
     }
+}
+Aggregate::Aggregate(Iterator *input,Attribute aggAttr,Attribute gAttr,AggregateOp op, const unsigned numPartitions)
+{
+    currentPosition = 0;
+    initer=input;
+    agg=aggAttr;
+    grouped=true;
+    this->op=op;
+    grAttr=gAttr;
+    vector <Attribute> recordDescriptor;
+    initer->getAttributes(recordDescriptor);
+    void *group=malloc(PAGE_SIZE);
+    void *record=malloc(PAGE_SIZE);
+    void *value=malloc(sizeof(int));
+    while(initer->getNextTuple(record)!=-1)
+    {
+        getAttrFromRecord(recordDescriptor,gAttr.name,group,record);
+        getAttrFromRecord(recordDescriptor,agg.name,value,record);
+        if(grAttr.type==0)
+        {
+            if(intmap.find(*(int *)group)==intmap.end())
+            {
+                void *tmp = malloc(sizeof(int));
+                memcpy(tmp, value, sizeof(int));
+                pair<void*, int> tmppair = make_pair(tmp, 1);
+                intmap[*(int *)group]=tmppair;
+            }
+            else
+            {
+                    intmap[*(int*)group].second++;
+                    calculate(intmap[*(int*)group].first,value,op,agg);
+
+            }
+        }
+        if(grAttr.type==1)
+        {
+            if(floatmap.find(*(float *)group)==floatmap.end())
+            {
+                void *tmp = malloc(sizeof(int));
+                memcpy(tmp, value, sizeof(int));
+                pair<void*, int> tmppair = make_pair(tmp, 1);
+                floatmap[*(float *)group]=tmppair;
+            }
+            else
+            {
+                    floatmap[*(float*)group].second++;
+                    calculate(floatmap[*(float*)group].first,value,op,agg);
+            }
+        }
+        else
+        {
+            string groupstring="";
+            int stringLength;
+            memcpy(&stringLength, (char*)group, sizeof(int));
+            groupstring.assign((char*)group+sizeof(int), (char*)group+sizeof(int) + stringLength);
+            if(stringmap.find(groupstring)==stringmap.end())
+            {
+                void *tmp = malloc(sizeof(int));
+                memcpy(tmp, value, sizeof(int));
+                pair<void*, int> tmppair = make_pair(tmp, 1);
+                stringmap[groupstring] = tmppair;
+            }
+            else
+            {
+                stringmap[groupstring].second++;
+                calculate(stringmap[groupstring].first,value,op,agg);
+            }
+        }
+    }
+    intvector=vector <pair<int, pair<void *, int> > >(intmap.begin(),intmap.end());
+    floatvector=vector <pair<float, pair<void *, int> > >(floatmap.begin(),floatmap.end());
+    stringvector=vector <pair<string, pair<void *, int> > >(stringmap.begin(),stringmap.end());
+    free(record);
+    free(group);
+   // free(value);
 }
 
 int getRecordLength(const vector<Attribute> &recordDescription, const void *data)
