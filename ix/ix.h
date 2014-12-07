@@ -97,7 +97,8 @@ public:
 			void *page);
 	int printEntriesInMeta(FileHandle &fhMeta,const Attribute &attribute, int &OverflowPageNo);
 	//int IntRealPrint(FileHandle &fhPrim, void *page);
-	int IntRealPrint(void *page);
+	int IntPrint(void *page);
+	int RealPrint(void *page);
 	int VarCharPrint(void *page);
 protected:
 	IndexManager();                            // Constructor

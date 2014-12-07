@@ -318,12 +318,12 @@ RC CLI::process(const string input)
 Iterator * CLI::query(Iterator *previous, int code)
 {
   Iterator *it = NULL;
+  cout<<"code:"<<code<<endl;
   if (code >= 0 || (code != -2 && isIterator(string(next()), code)) ) {
     switch(code) {
       case FILTER:
         it = filter(previous);
         break;
-
       case PROJECT:
         it = projection(previous);
         break;
@@ -346,6 +346,7 @@ Iterator * CLI::query(Iterator *previous, int code)
 
       case IDX_SCAN:
         it = createBaseScanner("IDXSCAN");
+        cout<<"FINISHEDcreateBaseScanner"<<endl;
         break;
 
       case TBL_SCAN:
@@ -357,6 +358,7 @@ Iterator * CLI::query(Iterator *previous, int code)
         break;
     }
   }
+  cout<<"return query with code:"<<code<<endl;
   return it;
 }
 
@@ -530,15 +532,14 @@ Iterator * CLI::filter(Iterator *input) {
 Iterator * CLI::projection(Iterator *input) {
   char *token = next();
   int code = -2;
+  //cout<<"input:"<<*(char*)input<<endl;
+  //cout<<"token:"<<string(token)<<endl;
   if (isIterator(string(token), code))
     input = query(input, code);
-
   if (input == NULL)
     input = createBaseScanner(string(token));
-
   token = next(); // eat GET
   token = next(); // eat [
-
   // parse the projection attributes
   vector<string> attrNames;
   while (true) {
@@ -547,7 +548,7 @@ Iterator * CLI::projection(Iterator *input) {
       break;
     attrNames.push_back(token);
   }
-
+  
 
   // if we have "*", convert it to all attributes
   if (attrNames[0].compare("*") == 0) {
@@ -562,7 +563,7 @@ Iterator * CLI::projection(Iterator *input) {
     string tableName = getTableName(input);
     addTableNameToAttrs(tableName, attrNames);
   }
-
+  
   Project *project = new Project(input, attrNames);
   return project;
 }
@@ -605,7 +606,7 @@ Iterator * CLI::createBaseScanner(const string token) {
       default:
       break;
     }
-
+    cout<<"return is"<<endl;
     return is;
   }
   // otherwise, create create table scanner
@@ -640,7 +641,7 @@ RC CLI::run(Iterator *it) {
   vector<Attribute> attrs;
   vector<string> outputBuffer;
   it->getAttributes(attrs);
-
+	
   for (uint i=0; i < attrs.size(); i++)
     outputBuffer.push_back(attrs[i].name);
 
@@ -648,9 +649,9 @@ RC CLI::run(Iterator *it) {
     if ( updateOutputBuffer(outputBuffer, data, attrs) != 0)
       return error(__LINE__);
   }
-
   if (printOutputBuffer(outputBuffer, attrs.size()) != 0)
     return error(__LINE__);
+  cout<<"return run"<<endl;
   return 0;
 }
 
@@ -1395,6 +1396,7 @@ RC CLI::printIndex() {
   tokenizer = next();
   string tableName = string(tokenizer);
 
+cout<<"printIndex"<<endl;
   RM_IndexScanIterator rmisi;
   if (rm->indexScan(tableName, columnName, NULL, NULL, false, false, rmisi) != 0)
 	  return error("error in indexScan::printIndex");

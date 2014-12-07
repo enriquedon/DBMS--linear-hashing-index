@@ -35,8 +35,9 @@ void Test11()
   exec("create table employee EmpName = varchar(30), Age = int, Height = real, Salary = int");
 
   exec("load employee employee_5");
-
+  exec("print employee");
   exec("create index Height on employee");
+  //exec("print employee_Height_primary");
   exec("SELECT PROJECT IDXSCAN employee (Height > 5.7) GET [ * ]");
   exec("SELECT PROJECT IDXSCAN employee (Height < 6.4) GET [ * ]");
   exec("SELECT PROJECT IDXSCAN employee (Height = 6.6) GET [ * ]");

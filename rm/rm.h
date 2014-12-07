@@ -54,6 +54,7 @@ public:
 
 	// "key" follows the same format as in IndexManager::insertEntry()
 	RC getNextEntry(RID &rid, void *key) {
+		cout<<"key:"<<*(float*)key<<endl;
 		return rmindexscaner.getNextEntry(rid, key);
 	}
 	;  	// Get next matching entry
@@ -126,6 +127,7 @@ private:
 	static RelationManager *_rm;
 	IndexManager *ix;
 	RecordBasedFileManager *rbfm;
+	PagedFileManager *pfm; 
 	string catalog;
 	string column;
 	string IndexCatalog;
@@ -147,6 +149,7 @@ private:
 			const string &tableName, const void *data, const RID &rid, bool DI);
 	RC DelInsIndex(Attribute attr, string indexFileName, unsigned &offset,
 			const void *data, const RID rid, bool DI);
+	RC MakeIndex(const string &tableName,const string &indexTableName);
 };
 
 #endif
