@@ -1754,9 +1754,10 @@ int IndexManager::findDeletePosition(int start, const void *key, const RID &rid,
             {
                 if (offset > 0) {
                     offset -= 1;
+                    memcpy(&targetValue, (char*)pages[pageNumber]+(offset)*INTREAL_SLOT, sizeof(int));
                     while (keyValue == targetValue and offset >= head) {
-                        memcpy(&targetValue, (char*)pages[pageNumber]+(offset)*INTREAL_SLOT, sizeof(int));
                         offset-=1;
+                        memcpy(&targetValue, (char*)pages[pageNumber]+(offset)*INTREAL_SLOT, sizeof(int));
                     }
                     offset +=1;
                 }
@@ -1765,8 +1766,7 @@ int IndexManager::findDeletePosition(int start, const void *key, const RID &rid,
                 memcpy(&p, (char*)pages[pageNumber]+offset*INTREAL_SLOT+sizeof(int), sizeof(int));
                 memcpy(&s, (char*)pages[pageNumber]+offset*INTREAL_SLOT+2*sizeof(int), sizeof(int));
                 if (p==rid.pageNum and s==rid.slotNum) {
-                  //  return offset;
-                    return middleNumber;
+                    return offset+pageNumber*number;
                 }
                 else
                 {
@@ -1800,10 +1800,11 @@ int IndexManager::findDeletePosition(int start, const void *key, const RID &rid,
             if (keyValue == targetValue)
             {
                 if (offset > 0) {
-                    offset -= 1;
-                    while (keyValue == targetValue and offset >= head) {
-                        memcpy(&targetValue, (char*)pages[pageNumber]+(offset)*INTREAL_SLOT, sizeof(int));
                         offset-=1;
+                        memcpy(&targetValue, (char*)pages[pageNumber]+(offset)*INTREAL_SLOT, sizeof(int));
+                    while (keyValue == targetValue and offset >= head) {
+                        offset-=1;
+                        memcpy(&targetValue, (char*)pages[pageNumber]+(offset)*INTREAL_SLOT, sizeof(int));
                     }
                     offset +=1;
                 }
@@ -1812,8 +1813,7 @@ int IndexManager::findDeletePosition(int start, const void *key, const RID &rid,
                 memcpy(&p, (char*)pages[pageNumber]+offset*INTREAL_SLOT+sizeof(int), sizeof(int));
                 memcpy(&s, (char*)pages[pageNumber]+offset*INTREAL_SLOT+2*sizeof(int), sizeof(int));
                 if (p==rid.pageNum and s==rid.slotNum) {
-                   // return offset;
-                    return middleNumber;
+                    return offset+pageNumber*number;
                 }
                 else
                 {
@@ -1848,13 +1848,17 @@ int IndexManager::findDeletePosition(int start, const void *key, const RID &rid,
             if (keyValue == targetValue)
             {
                 if (offset > 0) {
-                    offset -= 1;
+                    offset-=1;
+                    int tmppagenumber;
+                    int tmpoffset;
+                    middleTopage(offset, pageNumbers, tmpoffset, tmppagenumber);
+                    targetValue = getVarcharValue(pages[tmppagenumber], tmpoffset);
                     while (keyValue == targetValue and offset >= head) {
+                        offset-=1;
                         int tmppagenumber;
                         int tmpoffset;
                         middleTopage(offset, pageNumbers, tmpoffset, tmppagenumber);
                         targetValue = getVarcharValue(pages[tmppagenumber], tmpoffset);
-                        offset-=1;
                     }
                     offset +=1;
                 }
@@ -1862,7 +1866,11 @@ int IndexManager::findDeletePosition(int start, const void *key, const RID &rid,
                 getVarcharRid(tmprid, pages[pageNumber], offset);
                 if (tmprid.pageNum==rid.pageNum and tmprid.slotNum==rid.slotNum) {
                     // return offset;
-                    return middleNumber;
+                    int beforenumber=0;
+                    for (int i=0; i<pageNumber; i++) {
+                        beforenumber+=pageNumbers[i];
+                    }
+                    return offset+beforenumber;
                 }
                 else
                 {
@@ -2207,8 +2215,8 @@ RC IX_ScanIterator::exactMatch(RID &rid, void *key)
                     offset -= 1;
                     memcpy(&targetValue, (char*)data+(offset)*INTREAL_SLOT, sizeof(int));
                     while (keyValue == targetValue and offset >= head) {
-                        memcpy(&targetValue, (char*)data+(offset)*INTREAL_SLOT, sizeof(int));
                         offset-=1;
+                        memcpy(&targetValue, (char*)data+(offset)*INTREAL_SLOT, sizeof(int));
                     }
                     offset +=1;
                 }
@@ -2291,8 +2299,8 @@ RC IX_ScanIterator::exactMatch(RID &rid, void *key)
                     offset -= 1;
                     memcpy(&targetValue, (char*)data+(offset)*INTREAL_SLOT, sizeof(int));
                     while (keyValue == targetValue and offset >= head) {
-                        memcpy(&targetValue, (char*)data+(offset)*INTREAL_SLOT, sizeof(int));
                         offset-=1;
+                        memcpy(&targetValue, (char*)data+(offset)*INTREAL_SLOT, sizeof(int));
                     }
                     offset +=1;
                 }
@@ -2378,11 +2386,9 @@ RC IX_ScanIterator::exactMatch(RID &rid, void *key)
                 if (offset > 0) {
                     offset -= 1;
                     targetValue=getVarcharValue(data, offset);
-                    //memcpy(&targetValue, (char*)data+(offset)*INTREAL_SLOT, sizeof(int));
                     while (keyValue == targetValue and offset >= head) {
-                        //memcpy(&targetValue, (char*)data+(offset)*INTREAL_SLOT, sizeof(int));
-                        targetValue=getVarcharValue(data, offset);
                         offset-=1;
+                        targetValue=getVarcharValue(data, offset);
                     }
                     offset +=1;
                 }
