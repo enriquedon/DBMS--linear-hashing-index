@@ -819,6 +819,28 @@ int IndexManager::getVarcharTailData(void *pagedata, int length, vector<int> &ta
     return taillength;
 }
 
+void IndexManager::moveVarChardirDelete(int start, int end, int slotlength, void *data)
+{
+    int head;
+    head = PAGE_SIZE-(4+end)*sizeof(int);
+    int tail = PAGE_SIZE-(4+start)*sizeof(int);
+    int tmp = head;
+    //modify value
+    while (tmp<=tail)
+    {
+        int offsetValue;
+        int a = *(int*)((char*)data+tmp);
+        memcpy(&offsetValue, (char*)data+tmp, sizeof(int));
+        offsetValue-=slotlength;
+        memcpy((char*)data+tmp,&offsetValue, sizeof(int));
+        tmp+=sizeof(int);
+    }
+    //move slot without clear the last dir
+    void *tmpdata = malloc(tail-head+sizeof(int));
+    memcpy(tmpdata,(char*)data+head, tail-head+sizeof(int));
+    memcpy((char*)data+head+sizeof(int), tmpdata, tail-head+sizeof(int));
+    free(tmpdata);
+}
 void IndexManager::moveVarChardir(int start, int end, int slotlength, void *data)
 {
     int head;
@@ -1559,7 +1581,7 @@ RC IndexManager::deleteEntry(IXFileHandle &ixfileHandle,
         pageNumbers.push_back(slotNumber);
     }
 
-    int deletePosition = findDeletePosition(0,key, rid,attribute,pages,totalNumber);
+    int deletePosition = findDeletePosition(0,key, rid,attribute,pages,totalNumber,pageNumbers);
     if (deletePosition == -1)
         return -1;
 
@@ -1646,9 +1668,70 @@ int IndexManager::deleteFromPages(int position, vector<int> &pageNumbers, const 
         free(tmp);
         return pagePosition;
     }
-    return 0;
+    else
+    {
+        //find the position of the page
+        int pagePosition = 0;
+        while(pageNumbers[pagePosition]>0 and position > pageNumbers[pagePosition]-1) {
+            position -= pageNumbers[pagePosition];
+            pagePosition += 1;
+        }
+        //delete From the fist page
+        deleteFromCertianPage(position, page, pageNumbers, pagePosition);
+        int nextPage;
+        memcpy(&nextPage, (char*)page[pagePosition]+PAGE_SIZE-sizeof(int), sizeof(int));
+        //move among pages
+        int currentPage = pagePosition;
+        int currentPosition = position;
+        while (nextPage != 0) {
+            //get headData
+            void *headData = malloc(PAGE_SIZE);
+            int tmplength = getVarcharSlot(headData,page[currentPage], 0);
+            
+            if (checkVarcharFull(1, tmplength, page[currentPage])) {
+                break;
+            }
+            //insert headData to the end of the page
+            else
+            {
+                //insert data
+                int insertoffset = getVarcharOffset(page[currentPage], pageNumbers[currentPage]);
+                memcpy((char*)page[currentPage]+insertoffset, headData, tmplength);
+                //modify slot
+                int lastoffset = insertoffset+tmplength;
+                memcpy((char*)page[currentPage]+PAGE_SIZE-(pageNumbers[currentPage]+4)*sizeof(int), &lastoffset, sizeof(int));
+                
+                //add pagenumber
+                pageNumbers[pagePosition] += 1;
+                memcpy( (char*)page[pagePosition] + PAGE_SIZE - 2*sizeof(int), &pageNumbers[pagePosition], sizeof(int));
+                
+                deleteFromCertianPage(0, page, pageNumbers, currentPage+1);
+                currentPage+=1;
+                currentPosition = 0;
+                memcpy(&nextPage, (char*)page[currentPage]+PAGE_SIZE-sizeof(int), sizeof(int));
+            }
+        }
+        return pagePosition;
+    }
 }
-int IndexManager::findDeletePosition(int start, const void *key, const RID &rid, const Attribute attribute, vector<void *> &pages, int totalNumber)
+void IndexManager::deleteFromCertianPage(int position, vector<void*> page, vector<int> &pageNumbers, int pagePosition)
+{
+    int startposition = getVarcharOffset(page[pagePosition], position+1);
+    int endposition = getVarcharOffset(page[pagePosition], pageNumbers[pagePosition]);
+    int moveSize = endposition-startposition;
+    void *tmp = malloc(moveSize);
+    memcpy(tmp, (char*)page[pagePosition]+startposition,moveSize);
+    memcpy((char*)page[pagePosition]+ getVarcharOffset(page[pagePosition], position), tmp, moveSize);
+    pageNumbers[pagePosition] -= 1;
+    memcpy( (char*)page[pagePosition] + PAGE_SIZE - 2*sizeof(int), &pageNumbers[pagePosition], sizeof(int));
+    //moveslot
+    void *t = malloc(PAGE_SIZE);
+    int slotlength = getVarcharSlot(t, page[pagePosition], position);
+    moveVarChardirDelete(position, pageNumbers[pagePosition]-1,slotlength, page[pagePosition]);
+    free(tmp);
+    free(t);
+}
+int IndexManager::findDeletePosition(int start, const void *key, const RID &rid, const Attribute attribute, vector<void *> &pages, int totalNumber, vector<int> pageNumbers)
 {
     if (attribute.type == 0)
     {
@@ -1682,11 +1765,12 @@ int IndexManager::findDeletePosition(int start, const void *key, const RID &rid,
                 memcpy(&p, (char*)pages[pageNumber]+offset*INTREAL_SLOT+sizeof(int), sizeof(int));
                 memcpy(&s, (char*)pages[pageNumber]+offset*INTREAL_SLOT+2*sizeof(int), sizeof(int));
                 if (p==rid.pageNum and s==rid.slotNum) {
-                    return offset;
+                  //  return offset;
+                    return middleNumber;
                 }
                 else
                 {
-                    return findDeletePosition(offset+1, key, rid, attribute, pages, totalNumber);
+                    return findDeletePosition(offset+1, key, rid, attribute, pages, totalNumber,pageNumbers);
                 }
             }
             if (keyValue > targetValue)
@@ -1728,11 +1812,12 @@ int IndexManager::findDeletePosition(int start, const void *key, const RID &rid,
                 memcpy(&p, (char*)pages[pageNumber]+offset*INTREAL_SLOT+sizeof(int), sizeof(int));
                 memcpy(&s, (char*)pages[pageNumber]+offset*INTREAL_SLOT+2*sizeof(int), sizeof(int));
                 if (p==rid.pageNum and s==rid.slotNum) {
-                    return offset;
+                   // return offset;
+                    return middleNumber;
                 }
                 else
                 {
-                    return findDeletePosition(offset+1, key, rid, attribute, pages, totalNumber);
+                    return findDeletePosition(offset+1, key, rid, attribute, pages, totalNumber,pageNumbers);
                 }
             }
             if (keyValue > targetValue)
@@ -1742,7 +1827,55 @@ int IndexManager::findDeletePosition(int start, const void *key, const RID &rid,
             }
         return -1;
     }
-    return -1;
+    else
+    {
+        string keyValue = "";
+        int keyLength = *(int*)key;
+        keyValue.assign((char*)key+sizeof(int),(char*)key+sizeof(int)+keyLength);
+        int head = start;
+        int tail = 0;
+        if (totalNumber > 0)
+            tail = totalNumber-1;
+        else
+            return 0;
+        //int insertPosion = 0;
+        while (head<=tail) {
+            int middleNumber = (tail+head)/2 ;   //middleNumber th number in total
+            int offset = 0;
+            int pageNumber = 0;
+            middleTopage(middleNumber, pageNumbers, offset, pageNumber);
+            string targetValue= getVarcharValue(pages[pageNumber], offset);
+            if (keyValue == targetValue)
+            {
+                if (offset > 0) {
+                    offset -= 1;
+                    while (keyValue == targetValue and offset >= head) {
+                        int tmppagenumber;
+                        int tmpoffset;
+                        middleTopage(offset, pageNumbers, tmpoffset, tmppagenumber);
+                        targetValue = getVarcharValue(pages[tmppagenumber], tmpoffset);
+                        offset-=1;
+                    }
+                    offset +=1;
+                }
+                RID tmprid;
+                getVarcharRid(tmprid, pages[pageNumber], offset);
+                if (tmprid.pageNum==rid.pageNum and tmprid.slotNum==rid.slotNum) {
+                    // return offset;
+                    return middleNumber;
+                }
+                else
+                {
+                    return findDeletePosition(offset+1, key, rid, attribute, pages, totalNumber,pageNumbers);
+                }
+            }
+            if (keyValue > targetValue)
+                head = middleNumber +1;
+            else
+                tail = middleNumber -1;
+        }
+        return -1;
+    }
 }
 
 unsigned IndexManager::hash(const Attribute &attribute, const void *key) {

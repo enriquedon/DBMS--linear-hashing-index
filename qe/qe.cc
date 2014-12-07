@@ -559,6 +559,19 @@ RC BNLJoin::getNextTuple(void *data)
     freeVector(records);
     return -1;
 }
+GHJoin::GHJoin(Iterator *leftIn,Iterator *rightIn, const Condition &condition, const unsigned numPartitions )
+{
+    this->leftIn = leftIn;
+    this->rightIn = rightIn;
+    cond = condition;
+    numPart = numPartitions;
+    leftIn->getAttributes(leftdes);
+    rightIn->getAttributes(rightdes);
+    
+    
+}
+
+
 
 
 // ... the rest of your implementations go here

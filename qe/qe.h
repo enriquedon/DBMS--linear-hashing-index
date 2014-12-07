@@ -237,12 +237,25 @@ class GHJoin : public Iterator {
             Iterator *rightIn,               // Iterator of input S
             const Condition &condition,      // Join condition (CompOp is always EQ)
             const unsigned numPartitions     // # of partitions for each relation (decided by the optimizer)
-      ){};
+      );
       ~GHJoin(){};
 
       RC getNextTuple(void *data){return QE_EOF;};
       // For attribute in vector<Attribute>, name it as rel.attr
       void getAttributes(vector<Attribute> &attrs) const{};
+    private:
+    Iterator *leftIn;
+    Iterator *rightIn;
+    Condition cond;
+    Attribute rightAttr;
+    Attribute leftAttr;
+    vector <Attribute> rightdes,leftdes;
+    unsigned numPart;
+    map <int, vector<void*> > leftmap;
+    map <int, vector<void*> > righttmap;
+    
+    //map <float,pair<void *, int> > floatmap;
+    //map <string, pair<void *, int> > stringmap;
 };
 
 
@@ -312,7 +325,14 @@ class Aggregate : public Iterator {
                   AggregateOp op,              // Aggregate operation
                   const unsigned numPartitions // Number of partitions for input (decided by the optimizer)
         );
-        ~Aggregate(){};
+        ~Aggregate(){
+            for(int i=0;i<intvector.size();i++)
+                free(intvector[i].second.first);
+            for(int i=0;i<floatvector.size();i++)
+                free(floatvector[i].second.first);
+            for(int i=0;i<stringvector.size();i++)
+                free(stringvector[i].second.first);
+        };
 
         RC getNextTuple(void *data);
         // Please name the output attribute as aggregateOp(aggAttr)
