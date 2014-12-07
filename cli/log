@@ -1,0 +1,18 @@
+*********** CLI Test11 begins ******************
+>>> create table employee EmpName = varchar(30), Age = int, Height = real, Salary = int
+>>> load employee employee_5
+>>> print employee
+EmpName           |  Age  |  Height    |  Salary  |  
+===================================================
+Anettea Belote    |  67   |  6.400000  |  75000   |  
+Zina Legleiter    |  45   |  6.300000  |  150000  |  
+Rena Broadus      |  68   |  5.900000  |  250000  |  
+Lorriane Shimmin  |  49   |  6.600000  |  400000  |  
+Elvira Binns      |  36   |  5.600000  |  200000  |  
+>>> create index Height on employee
+Number of total entries in the page (+ overflow pages) : 5
+primary Page No.0
+ a.# of entries : 5
+ b. entries:
+[5.6/0,5] [5.9/0,3] [6.3/0,2] [6.4/0,1] [6.6/0,4] >>> SELECT PROJECT IDXSCAN employee (Height > 5.7) GET [ * ]
+111111111

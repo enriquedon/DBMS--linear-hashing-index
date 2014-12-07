@@ -127,14 +127,20 @@ RC FileHandle::readPage(PageNum pageNum, void *data)
 {
     try
     {   //if(pageNum > pageNumber)
+
         if(pageNum >= pageNumber)
         {
             throw 2;
         }
+
+        //cout<<"pageNum;"<<pageNum<<endl;
         fseek(file, (pageNum)*PAGE_SIZE, SEEK_SET);
       //  fseek(file, (pageNum-1)*PAGE_SIZE, SEEK_SET);
+
+        //cout<<"pageNumber;"<<pageNumber<<endl;  
         fread(data, PAGE_SIZE,1,file);
         readPageCounter++;
+        //cout<<"readPageCounter;"<<readPageCounter<<endl;
         return 0;
     }
     catch(int e)

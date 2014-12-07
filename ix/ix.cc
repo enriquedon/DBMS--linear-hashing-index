@@ -120,6 +120,7 @@ RC IndexManager::openFile(const string &fileName, IXFileHandle &ixfileHandle) {
 		getLevelNext(ixfileHandle);
 		if (PagedFileManager::instance()->openFile(primFile.c_str(), fhPrim)
 				== 0) {
+            cout<<primFile.c_str()<<endl;
 			ixfileHandle.passFileHandle(fhMeta, fhPrim);
 			fseek(fhPrim.getFile(), 0, SEEK_END);
 			ixfileHandle.setPrimPageNumber(ftell(fhPrim.getFile()) / PAGE_SIZE);
@@ -1909,10 +1910,12 @@ unsigned IndexManager::hash(const Attribute &attribute, const void *key) {
             value = int(first) + int(last);
         }
     }
-    result = value % (int) pow(2 , (level + 2));
+   result = value % (bucketInit<<level);
     if (result < next) {
-        result = value % (int) pow(2 , (level + 3));
+        result = value % (bucketInit<<(level+1));
+        //cout<<"????????????????"<<endl;
     }
+    //cout<<"result:"<<result<<endl;
     return result;
 }
 
@@ -1982,10 +1985,10 @@ int IndexManager::printEntriesInPrim(FileHandle &fhPrim,
                                      const Attribute &attribute, void *pagePrim) {
     switch (attribute.type) {
         case 0:
-            IntRealPrint(pagePrim);
+            IntPrint(pagePrim);
             break;
         case 1:
-            IntRealPrint(pagePrim);
+            RealPrint(pagePrim);
             break;
         case 2:
             VarCharPrint(pagePrim);
@@ -2010,10 +2013,10 @@ int IndexManager::printEntriesInMeta(FileHandle &fhMeta,const Attribute &attribu
         
         switch (attribute.type) {
             case 0:
-                NextPage = IntRealPrint(pageMeta);
+                NextPage = IntPrint(pageMeta);
                 break;
             case 1:
-                NextPage = IntRealPrint(pageMeta);
+                NextPage = RealPrint(pageMeta);
                 break;
             case 2:
                 NextPage = VarCharPrint(pageMeta);
@@ -2021,16 +2024,13 @@ int IndexManager::printEntriesInMeta(FileHandle &fhMeta,const Attribute &attribu
                 
         }
         free(pageMeta);
-        if (NextPage > 0) {
-            //printEntriesInMeta(fhMeta, attribute, NextPage);
-        }
         return 0;
     }
     free(pageMeta);
     return -1;
 }
 
-int IndexManager::IntRealPrint(void *page) {
+int IndexManager::IntPrint(void *page) {
     int Entries;
     memcpy(&Entries, (char *) page + PAGE_SIZE - sizeof(int) * 2, sizeof(int));
     cout << " b. entries:" << endl;
@@ -2038,6 +2038,7 @@ int IndexManager::IntRealPrint(void *page) {
         int offset = INTREAL_SLOT * i;
         int key;
         RID rid;
+        //float key=*(float *) ((char *) page + offset);
         memcpy(&key, (char *) page + offset, sizeof(int));
         memcpy(&rid.pageNum, (char *) page + offset + sizeof(int), sizeof(int));
         memcpy(&rid.slotNum, (char *) page + offset + sizeof(int) * 2,
@@ -2047,8 +2048,28 @@ int IndexManager::IntRealPrint(void *page) {
     int NextPage;
     memcpy(&NextPage, (char *) page + PAGE_SIZE - sizeof(int), sizeof(int));
     return NextPage;
-    
-    return 0;
+
+}
+
+int IndexManager::RealPrint(void *page) {
+    int Entries;
+    memcpy(&Entries, (char *) page + PAGE_SIZE - sizeof(int) * 2, sizeof(int));
+    cout << " b. entries:" << endl;
+    for (int i = 0; i < Entries; i++) {
+        int offset = INTREAL_SLOT * i;
+        //int key;
+        RID rid;
+        float key=*(float *) ((char *) page + offset);
+        //memcpy(&key, (char *) page + offset, sizeof(int));
+        memcpy(&rid.pageNum, (char *) page + offset + sizeof(int), sizeof(int));
+        memcpy(&rid.slotNum, (char *) page + offset + sizeof(int) * 2,
+               sizeof(int));
+        cout << "[" << key << "/" << rid.pageNum << "," << rid.slotNum << "] ";
+    }
+    int NextPage;
+    memcpy(&NextPage, (char *) page + PAGE_SIZE - sizeof(int), sizeof(int));
+    return NextPage;
+
 }
 
 int IndexManager::VarCharPrint(void *page) {
@@ -2121,7 +2142,7 @@ void IX_ScanIterator::init(IXFileHandle &ixfileHandle, const Attribute &attribut
     this->highkeyInclusive = highKeyInclusive;
     this->data = malloc(PAGE_SIZE);
     primeFile->readPage(0, data);
-    //this->//ixfileHandle->addread();
+
     startPosition = 0;
     currentPage = 0;
     primaryPage = primeFile->getNumberOfPages();
@@ -2170,6 +2191,8 @@ void IX_ScanIterator::init(IXFileHandle &ixfileHandle, const Attribute &attribut
         keySize = length2 + sizeof(int);
         }
     }
+
+    cout<<"return init"<<endl;
 }
 RC IX_ScanIterator::exactMatch(RID &rid, void *key)
 {
@@ -2434,11 +2457,16 @@ RC IX_ScanIterator::exactMatch(RID &rid, void *key)
 
 RC IX_ScanIterator::getNextEntry(RID &rid, void *key) {
     void *tmpData = malloc(PAGE_SIZE);
+    memset(tmpData,0,PAGE_SIZE);
     if (currentPage +1> totalPage) {
         return EOF;
     }
+    cout<<"currentPage:"<<currentPage<<endl;
+    cout<<"primaryPage:"<<primaryPage<<endl;
     if (currentPage+1 <= primaryPage) {
+        cout<<"rangeMatch0"<<endl;
         primeFile->readPage(currentPage, tmpData);
+
         //ixfileHandle->addread();
     }
     else
@@ -2446,11 +2474,37 @@ RC IX_ScanIterator::getNextEntry(RID &rid, void *key) {
         metaFile->readPage(currentPage+1-primaryPage, tmpData);
         //ixfileHandle->addread();
     }
+
+
+    cout<<"rangeMatch1"<<endl;
+
+    int Entries;
+    memcpy(&Entries, (char *) tmpData + PAGE_SIZE - sizeof(int) * 2, sizeof(int));
+    cout << "Entries:" << Entries <<endl;
+    cout << " b. entries:" << endl;
+    for (int i = 0; i < Entries; i++) {
+        int offset = INTREAL_SLOT * i;
+        //int key;
+        RID rid;
+        float key=*(float *) ((char *) tmpData + offset);
+        //memcpy(&key, (char *) page + offset, sizeof(int));
+        memcpy(&rid.pageNum, (char *) tmpData + offset + sizeof(int), sizeof(int));
+        memcpy(&rid.slotNum, (char *) tmpData + offset + sizeof(int) * 2,
+               sizeof(int));
+        cout << "[" << key << "/" << rid.pageNum << "," << rid.slotNum << "] ";
+    }
+    int NextPage;
+    memcpy(&NextPage, (char *) tmpData + PAGE_SIZE - sizeof(int), sizeof(int));
+
+
+
+    cout<<"rangeMatch2"<<endl;
     if (memcmp(tmpData, data, PAGE_SIZE)!=0) {
         data = tmpData;
         startPosition = 0;
        // currentPage = 0;
     }
+    cout<<"rangeMatch3"<<endl;
     if (highKey != NULL and lowKey != NULL) {
         if (memcmp(highKey,lowKey, keySize)==0){
             return exactMatch(rid, highKey);
@@ -2460,11 +2514,13 @@ RC IX_ScanIterator::getNextEntry(RID &rid, void *key) {
     }
     else
     {
+        cout<<"rangeMatch4"<<endl;
         return rangeMatch(rid, key);
     }
 }
 RC IX_ScanIterator::rangeMatch(RID &rid, void *key)
 {
+    cout<<"attribute.type:"<<attribute.type<<endl;
     if (attribute.type==0) {
         //check if it comes to end
         if (currentPage +1> totalPage) {
@@ -2491,7 +2547,6 @@ RC IX_ScanIterator::rangeMatch(RID &rid, void *key)
             startPosition = 0;
             return rangeMatch(rid, key);
         }
-
         int targetData;
         memcpy(&targetData, (char*)data+startPosition*INTREAL_SLOT, sizeof(int));
 
@@ -2649,6 +2704,7 @@ RC IX_ScanIterator::rangeMatch(RID &rid, void *key)
             if (lowKey==NULL) {
                 int high;
                 memcpy(&high, highKey, sizeof(int));
+                //cout<<"high:"<<high<<endl;
                 if (highkeyInclusive)
                 {
                     while (targetData > high) {
@@ -2768,9 +2824,13 @@ RC IX_ScanIterator::rangeMatch(RID &rid, void *key)
             return EOF;
         }
         
+
+
+
         //check if there are data in the slot
         int slotNumber;
         memcpy(&slotNumber, (char*)data+PAGE_SIZE-2*sizeof(int), sizeof(int));
+        cout<<"slotNumber:"<<slotNumber<<endl;
         if (slotNumber==0) {
             currentPage += 1;
             if (currentPage +1> totalPage) {
@@ -2819,6 +2879,7 @@ RC IX_ScanIterator::rangeMatch(RID &rid, void *key)
             if (highKey == NULL) {
                 float low;
                 memcpy(&low, lowKey, sizeof(int));
+                //cout<<"low:"<<low<<endl;
                 if (lowKeyInclusive)
                 {
                     while (targetData < low) {
@@ -2946,6 +3007,7 @@ RC IX_ScanIterator::rangeMatch(RID &rid, void *key)
             if (lowKey==NULL) {
                 float high;
                 memcpy(&high, highKey, sizeof(int));
+                //cout<<"high:"<<high<<endl;
                 if (highkeyInclusive)
                 {
                     while (targetData > high) {

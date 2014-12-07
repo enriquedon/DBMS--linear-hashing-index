@@ -129,6 +129,7 @@ class IndexScan : public Iterator
 
         IndexScan(RelationManager &rm, const string &tableName, const string &attrName, const char *alias = NULL):rm(rm)
         {
+
         	// Set members
         	this->tableName = tableName;
         	this->attrName = attrName;
@@ -154,13 +155,16 @@ class IndexScan : public Iterator
             iter->close();
             delete iter;
             iter = new RM_IndexScanIterator();
+            cout<<"lowKey:"<<*(float*)lowKey<<endl;
             rm.indexScan(tableName, attrName, lowKey, highKey, lowKeyInclusive,
                            highKeyInclusive, *iter);
         };
 
         RC getNextTuple(void *data)
         {
+            cout<<"indexcsan getNextTuple"<<endl;
             int rc = iter->getNextEntry(rid, key);
+            cout<<"indexcsan getNextTuple key:"<<*(float*)key<<endl;
             if(rc == 0)
             {
                 rc = rm.readTuple(tableName.c_str(), rid, data);
