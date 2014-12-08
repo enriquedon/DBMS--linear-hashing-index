@@ -54,7 +54,7 @@ public:
 
 	// "key" follows the same format as in IndexManager::insertEntry()
 	RC getNextEntry(RID &rid, void *key) {
-		cout<<"key:"<<*(float*)key<<endl;
+
 		return rmindexscaner.getNextEntry(rid, key);
 	}
 	;  	// Get next matching entry

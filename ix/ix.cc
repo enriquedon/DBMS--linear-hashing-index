@@ -84,7 +84,9 @@ RC IndexManager::initiateMeta(string metaFile, const unsigned &numberOfPages) {
 	//useful?
 	//memcpy((char*) dataPage + PAGE_SIZE - sizeof(int), &usedSize, sizeof(int));
 	fhMeta.appendPage(dataPage);
+    memset(dataPage, 0, PAGE_SIZE);
 	free(dataPage);
+    PagedFileManager::instance()->closeFile(fhMeta);
 	return 0;
 }
 
@@ -98,6 +100,7 @@ RC IndexManager::initiatePrim(string primFile, const unsigned &numberOfPages) {
 		fhPrim.appendPage(dataPage);
 	}
 	free(dataPage);
+    PagedFileManager::instance()->closeFile(fhPrim);
 	return 0;
 }
 
@@ -117,18 +120,20 @@ RC IndexManager::openFile(const string &fileName, IXFileHandle &ixfileHandle) {
 	FileHandle fhPrim;
 
 	if (PagedFileManager::instance()->openFile(metaFile.c_str(), fhMeta) == 0) {
+        ixfileHandle.passFileHandle(fhMeta, fhPrim);
+        fseek(fhMeta.getFile(), 0, SEEK_END);
+        ixfileHandle.setMetaPageNumber(ftell(fhMeta.getFile()) / PAGE_SIZE);
+        fseek(fhMeta.getFile(), 0, SEEK_SET);
 		getLevelNext(ixfileHandle);
+        //cout<<"metaFile:"<<metaFile.c_str()<<endl;
 		if (PagedFileManager::instance()->openFile(primFile.c_str(), fhPrim)
 				== 0) {
-            cout<<primFile.c_str()<<endl;
+            //cout<<"primFile:"<<primFile.c_str()<<endl;
 			ixfileHandle.passFileHandle(fhMeta, fhPrim);
 			fseek(fhPrim.getFile(), 0, SEEK_END);
 			ixfileHandle.setPrimPageNumber(ftell(fhPrim.getFile()) / PAGE_SIZE);
 			fseek(fhPrim.getFile(), 0, SEEK_SET);
-			ixfileHandle.passFileHandle(fhMeta, fhPrim);
-			fseek(fhMeta.getFile(), 0, SEEK_END);
-			ixfileHandle.setMetaPageNumber(ftell(fhMeta.getFile()) / PAGE_SIZE);
-			fseek(fhMeta.getFile(), 0, SEEK_SET);
+			
 
 			return 0;
 		}
@@ -171,9 +176,8 @@ RC IndexManager::getLevelNext(IXFileHandle &ixfileHandle) {
 	ixfileHandle.setLevel(level);
 	ixfileHandle.setNext(next);
 	ixfileHandle.setBucket(bucket);
+
 	free(dataPage);
-	//PagedFileManager::instance()->closeFile(fhMeta);
-	//PagedFileManager::instance()->closeFile(fhPrim);
 	return 0;
 }
 
@@ -866,7 +870,7 @@ RC IndexManager::split(const Attribute &attribute, string attributeName,
     int next = attributeTable[attributeName][1];
     void *pagePrim = malloc(PAGE_SIZE);
     memset(pagePrim, 0, PAGE_SIZE);
-				//cout<<"!level:"<<level<<"  next:"<<next<<endl;
+
     if (primaryFileHandle.readPage(next, pagePrim) == 0) {
         vector<int> usedOFnumber;
         vector<void *> oldPages;
@@ -898,8 +902,6 @@ RC IndexManager::split(const Attribute &attribute, string attributeName,
         updateMetaAfterSplit(attributeName, level, next);
         freeVector(oldPages);
     }
-    
-    //free(pagePrim);cout
     
     return 0;
 }
@@ -967,7 +969,6 @@ RC IndexManager::writeRehashedPages(const Attribute &attribute,
         writeOverflow(metaFileHandle, newPages1, numOfOverflowPages,usedOFnumber,used);
     } else {
         primaryFileHandle.writePage(pageNumber1, newPage1);
-        //cout<<"write primpage to:"<<pageNumber1<<endl;
     }
     if (newPages2.size() > 1) {
         memcpy((char *) newPage2 + PAGE_SIZE - sizeof(int), &usedOFnumber[used],
@@ -979,7 +980,6 @@ RC IndexManager::writeRehashedPages(const Attribute &attribute,
         
     } else {
         primaryFileHandle.appendPage(newPage2);
-        //cout<<"pageNumber2:"<<pageNumber2<<endl;
     }
     return 0;
 }
@@ -990,7 +990,6 @@ RC IndexManager::writeOverflow(FileHandle &metaFileHandle,
     int writeIN;
     
     while (remainPages > 0) {
-        //cout<<"remainPages:"<<remainPages<<endl;
         if (remainPages > 1) {
             if(used<usedOFnumber.size()){
                 writeIN=usedOFnumber[used];
@@ -1004,7 +1003,6 @@ RC IndexManager::writeOverflow(FileHandle &metaFileHandle,
                 free(dataPage);
                 //used++;
             }
-            //cout<<"numOfOverflowPages:"<<numOfOverflowPages<<"usedOFnumber.size():"<<usedOFnumber.size()<<endl;
             void *dataPage2 = newPages[newPages.size() - remainPages];
             memcpy((char *) dataPage2 + PAGE_SIZE - sizeof(int),
                    &writeIN, sizeof(int));
@@ -1016,7 +1014,6 @@ RC IndexManager::writeOverflow(FileHandle &metaFileHandle,
             used++;
             metaFileHandle.writePage(writeIN, dataPage2);
         } else {
-            //cout<<"numOfOverflowPages:"<<numOfOverflowPages<<"usedOFnumber.size():"<<usedOFnumber.size()<<endl;
             void *dataPage = newPages[newPages.size() - remainPages];
             //metaFileHandle.appendPage(dataPage);
             unsigned Entries;
@@ -1772,9 +1769,7 @@ unsigned IndexManager::hash(const Attribute &attribute, const void *key) {
    result = value % (bucketInit<<level);
     if (result < next) {
         result = value % (bucketInit<<(level+1));
-        //cout<<"????????????????"<<endl;
     }
-    //cout<<"result:"<<result<<endl;
     return result;
 }
 
@@ -1801,7 +1796,6 @@ RC IndexManager::printIndexEntriesInAPage(IXFileHandle &ixfileHandle,
                sizeof(int));
         
         while (OverflowPageNo != 0) {
-            //cout<<"@@@OverflowPageNo:"<<OverflowPageNo<<endl;
             void *pageMeta = malloc(PAGE_SIZE);
             memset(pageMeta, 0, PAGE_SIZE);
             if (fhMeta.readPage(OverflowPageNo, pageMeta) == 0) {
@@ -1812,7 +1806,6 @@ RC IndexManager::printIndexEntriesInAPage(IXFileHandle &ixfileHandle,
                        (char *) pageMeta + PAGE_SIZE- sizeof(int) * 2,
                        sizeof(int));
                 totalEntries+=OverflowEntries;
-                // cout<<"@@@OverflowEntries:"<<OverflowEntries<<endl;
             }
             
             free(pageMeta);
@@ -1979,6 +1972,7 @@ RC IndexManager::getNumberOfAllPages(IXFileHandle &ixfileHandle,
 RC IndexManager::scan(IXFileHandle &ixfileHandle, const Attribute &attribute,
 		const void *lowKey, const void *highKey, bool lowKeyInclusive,
 		bool highKeyInclusive, IX_ScanIterator &ix_ScanIterator) {
+
     ix_ScanIterator.init(ixfileHandle, attribute, lowKey, highKey, lowKeyInclusive, highKeyInclusive);
     return 0;
 }
@@ -2006,6 +2000,7 @@ void IX_ScanIterator::init(IXFileHandle &ixfileHandle, const Attribute &attribut
     currentPage = 0;
     primaryPage = primeFile->getNumberOfPages();
     totalPage = metaFile->getNumberOfPages() + primaryPage -1;
+
 
     if (attribute.type!=2) {
         keySize = sizeof(int);
@@ -2051,7 +2046,7 @@ void IX_ScanIterator::init(IXFileHandle &ixfileHandle, const Attribute &attribut
         }
     }
 
-    cout<<"return init"<<endl;
+
 }
 RC IX_ScanIterator::exactMatch(RID &rid, void *key)
 {
@@ -2322,27 +2317,21 @@ RC IX_ScanIterator::getNextEntry(RID &rid, void *key) {
     if (currentPage +1> totalPage) {
         return EOF;
     }
-    cout<<"currentPage:"<<currentPage<<endl;
-    cout<<"primaryPage:"<<primaryPage<<endl;
-    if (currentPage+1 <= primaryPage) {
-        cout<<"rangeMatch0"<<endl;
-        primeFile->readPage(currentPage, tmpData);
 
-        //ixfileHandle->addread();
+    if(currentPage==0&&primaryPage==1){
+        tmpData=data;
+    }
+    else if (currentPage+1 <= primaryPage) {
+        primeFile->readPage(currentPage, tmpData);
     }
     else
     {
         metaFile->readPage(currentPage+1-primaryPage, tmpData);
-        //ixfileHandle->addread();
     }
 
 
-    cout<<"rangeMatch1"<<endl;
-
     int Entries;
     memcpy(&Entries, (char *) tmpData + PAGE_SIZE - sizeof(int) * 2, sizeof(int));
-    cout << "Entries:" << Entries <<endl;
-    cout << " b. entries:" << endl;
     for (int i = 0; i < Entries; i++) {
         int offset = INTREAL_SLOT * i;
         //int key;
@@ -2353,19 +2342,16 @@ RC IX_ScanIterator::getNextEntry(RID &rid, void *key) {
         memcpy(&rid.slotNum, (char *) tmpData + offset + sizeof(int) * 2,
                sizeof(int));
         cout << "[" << key << "/" << rid.pageNum << "," << rid.slotNum << "] ";
+        cout << "WHY CANT I DELETE IT"<<endl;
     }
-    int NextPage;
-    memcpy(&NextPage, (char *) tmpData + PAGE_SIZE - sizeof(int), sizeof(int));
+  
 
 
-
-    cout<<"rangeMatch2"<<endl;
     if (memcmp(tmpData, data, PAGE_SIZE)!=0) {
         data = tmpData;
         startPosition = 0;
        // currentPage = 0;
     }
-    cout<<"rangeMatch3"<<endl;
     if (highKey != NULL and lowKey != NULL) {
         if (memcmp(highKey,lowKey, keySize)==0){
             return exactMatch(rid, highKey);
@@ -2375,13 +2361,11 @@ RC IX_ScanIterator::getNextEntry(RID &rid, void *key) {
     }
     else
     {
-        cout<<"rangeMatch4"<<endl;
         return rangeMatch(rid, key);
     }
 }
 RC IX_ScanIterator::rangeMatch(RID &rid, void *key)
 {
-    cout<<"attribute.type:"<<attribute.type<<endl;
     if (attribute.type==0) {
         //check if it comes to end
         if (currentPage +1> totalPage) {
@@ -2985,7 +2969,9 @@ RC IX_ScanIterator::rangeMatch(RID &rid, void *key)
 }
 
 RC IX_ScanIterator::close() {
-    free(data);
+    
+    if(data!=NULL){
+    free(data);}
 	return 0;
 }
 

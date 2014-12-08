@@ -221,6 +221,7 @@ RC RelationManager::deleteTable(const string &tableName) {
 	RBFM_ScanIterator rbfm_ScanIterator;
 	void *CatalogPage = malloc(PAGE_SIZE);
 	rbfm->openFile(catalog, fileHandle);
+
 	void *tableInfo = malloc(sizeof(int) + tableName.size());
 	*(int *) tableInfo = tableName.size();
 	memcpy((char *) tableInfo + sizeof(int), tableName.c_str(),
@@ -229,10 +230,13 @@ RC RelationManager::deleteTable(const string &tableName) {
 	attributes.push_back(string("TableName"));
 	rbfm->scan(fileHandle, catalog_v, string("TableName"), EQ_OP, tableInfo,
 			attributes, rbfm_ScanIterator);
+
 	if (rbfm_ScanIterator.getNextRecord(rid, CatalogPage) != -1) {
+
 		void * TableId = malloc(sizeof(int));
 		rbfm->readAttribute(fileHandle, catalog_v, rid, "TableId", TableId);
 		rbfm->deleteRecord(fileHandle, catalog_v, rid);
+
 
 		clearTableInColumn(TableId);
 		clearTableInIndex(tableName);
@@ -245,6 +249,7 @@ RC RelationManager::deleteTable(const string &tableName) {
 		rbfm->destroyFile(tableName.c_str());
 		return 0;
 	}
+
 	attributes.clear();
 	free(tableInfo);
 	free(CatalogPage);
@@ -261,21 +266,28 @@ RC RelationManager::clearTableInIndex(const string &tableName) {
 		*(int *) tableInfo = tableName.size();
 		memcpy((char *) tableInfo + sizeof(int), tableName.c_str(),
 				tableName.size());
+
 		void *ColumnPage = malloc(PAGE_SIZE);
 		RBFM_ScanIterator rbfm_ScanIterator;
 		vector<string> attributes;
-		attributes.push_back(string("TableName"));
+
+
+		//get out attributeName only
+		attributes.push_back(string("attributeName"));
 		rbfm->scan(fileHandle, IndexTable_v, string("TableName"), EQ_OP,
 				tableInfo, attributes, rbfm_ScanIterator);
+
 		while (rbfm_ScanIterator.getNextRecord(Irid, ColumnPage) != -1) {
-			void *record = malloc(PAGE_SIZE);
-			rbfm->readAttribute(fileHandle, IndexTable_v, Irid, "IndexFileName",
-					record);
-			string IndexFileName;
+		
 			int length1;
-			memcpy(&length1, (char*) record, sizeof(int));
-			memcpy(&IndexFileName, (char*) record + sizeof(int), length1);
-			destroyIndex(tableName, IndexFileName);
+			memcpy(&length1, (char*) ColumnPage, sizeof(int));
+			char *attributeName=new char[length1+1];
+			memcpy(attributeName, (char*) ColumnPage + sizeof(int), length1);
+			attributeName[length1]='\0';
+				//cout<<"length1:"<<length1<<endl;
+				//cout<<"attributeName:"<<attributeName<<endl;
+			destroyIndex(tableName, string(attributeName));
+			free(attributeName);
 		}
 		free(ColumnPage);
 		//rbfm->closeFile(fileHandle);
@@ -558,7 +570,6 @@ RC RelationManager::deleteTuple(const string &tableName, const RID &rid) {
 		return -1;
 	}
 
-	//
 	map<string, string> index;
 	if (getAllIndex(tableName, index) == 0) {
 		void *data = malloc(PAGE_SIZE);
@@ -806,22 +817,30 @@ RC RelationManager::reorganizeTable(const string &tableName) {
 RC RelationManager::createIndex(const string &tableName,
 		const string &attributeName) {
 	string indexTableName = tableName + "." + attributeName;
-	FileHandle fileHandle;
+	FileHandle fileHandle1;
+	FileHandle fileHandle2;
 
-	if (rbfm->openFile(indexTableName, fileHandle) == 0) {//index exists
-		rbfm->closeFile(fileHandle);
+	if ( rbfm->openFile(indexTableName+ "_primary", fileHandle1)&rbfm->openFile(indexTableName+ "mate", fileHandle1) == 0) {//index exists
+		rbfm->closeFile(fileHandle1);
 		return -1;
 	}
+	//rbfm->closeFile(fileHandle1);
+	//cout<<"can i close filehandle1?"<<endl;
+
+
+	//have not gotten IndexCatalog yet
+	if(rbfm->openFile(IndexCatalog, fileHandle2)!=0){
+		rbfm->createFile(IndexCatalog);	
+		rbfm->openFile(IndexCatalog, fileHandle2);	
+	}
 	ix->createFile(indexTableName,1);
-	rbfm->createFile(IndexCatalog);
-	rbfm->openFile(IndexCatalog, fileHandle);
 //tablename , attriname
 	void *CatalogPage = malloc(PAGE_SIZE);
 	memset(CatalogPage,0,PAGE_SIZE);
 	unsigned int offset = 0;
 
 	unsigned int indexTableNameLength = (unsigned int) attributeName.length()
-			+ (unsigned int) tableName.length();
+			+ (unsigned int) tableName.length()+1;
 	memcpy((char*) CatalogPage + offset, &indexTableNameLength, sizeof(int));
 	offset += sizeof(int);
 	memcpy((char*) CatalogPage + offset, indexTableName.c_str(),
@@ -842,16 +861,12 @@ RC RelationManager::createIndex(const string &tableName,
 			sizeof(char) * tableNameLength);
 	//offset += tableNameLength;
 	RID rid;
-	rbfm->insertRecord(fileHandle, IndexTable_v, CatalogPage, rid);
+	rbfm->insertRecord(fileHandle2, IndexTable_v, CatalogPage, rid);
 
-	//cout<<"indexTableNameLength:"<<indexTableNameLength<<endl;
-	//cout<<"tableNameLength:"<<tableNameLength<<endl;
-	//cout<<"attributeNameLength:"<<attributeNameLength<<endl;
-	//cout<<"00000000000000"<<endl;
 	MakeIndex(tableName,attributeName);
 
 	free(CatalogPage);
-	rbfm->closeFile(fileHandle);
+	rbfm->closeFile(fileHandle2);
 	return 0;
 }
 
@@ -875,13 +890,12 @@ RC RelationManager::MakeIndex(const string &tableName,const string &attributeNam
 		}
 	}
 
-	rbfm->openFile(tableName,fileHandle);
+	rbfm->openFile(tableName,fileHandle);//to scan each atrr
 	vector<string> givenAttr;
 	givenAttr.push_back(attributeName);
 	
 	if(rbfm->scan(fileHandle, Attributes, "", NO_OP, NULL, givenAttr, rbfm_ScanIterator)==0)
 	{
-		//cout<<"222222222222222"<<endl;
 		RID rid;
 		void *returnedData=malloc(PAGE_SIZE);
 		memset(returnedData,0,PAGE_SIZE);
@@ -889,11 +903,6 @@ RC RelationManager::MakeIndex(const string &tableName,const string &attributeNam
 		ix->openFile(indexTableName,ixfileHandle);
 		while(rbfm_ScanIterator.getNextRecord(rid, returnedData) != RM_EOF)
 		{
-
-			//float in=*(float*) returnedData;
-            //cout<<"in:"<<in<<endl;
-			//cout<<"rid1:"<<rid.slotNum<<endl;
-			//cout<<"rid2:"<<rid.pageNum<<endl;
 			ix->insertEntry(ixfileHandle,Attributes[i],returnedData,rid);
 			//free(attr);
 		}
@@ -904,7 +913,7 @@ RC RelationManager::MakeIndex(const string &tableName,const string &attributeNam
 		free(returnedData);
 	}
 
-
+	rbfm->closeFile(fileHandle);
 	return 0;
 }
 
@@ -912,14 +921,14 @@ RC RelationManager::MakeIndex(const string &tableName,const string &attributeNam
 RC RelationManager::destroyIndex(const string &tableName,
 		const string &attributeName) {
 	string indexTableName = tableName + "." + attributeName;
-	rbfm->destroyFile(indexTableName+ "_primary"); 
-	rbfm->destroyFile(indexTableName+ "_meta");  //delete file
-
+	int rc1=rbfm->destroyFile(indexTableName+ "_primary"); 
+	int rc2=rbfm->destroyFile(indexTableName+ "_meta");  //delete file
 	RID Irid;
 	FileHandle fileHandle;
 	RBFM_ScanIterator rbfm_ScanIterator;
 	void *CatalogPage = malloc(PAGE_SIZE);
 	if (rbfm->openFile(IndexCatalog, fileHandle) == -1) {
+		rbfm->closeFile(fileHandle);
 		return -1;
 	}
 	void *tableInfo = malloc(sizeof(int) + indexTableName.size());
@@ -928,20 +937,28 @@ RC RelationManager::destroyIndex(const string &tableName,
 			indexTableName.size());
 	vector<string> attributes;
 	attributes.push_back(string("indexFileName"));
+	attributes.push_back(string("attributeName"));
+	attributes.push_back(string("TableName"));
 	rbfm->scan(fileHandle, IndexTable_v, string("indexFileName"), EQ_OP,
 			tableInfo, attributes, rbfm_ScanIterator);
+
+
 	if (rbfm_ScanIterator.getNextRecord(Irid, CatalogPage) != -1) {
+
 		rbfm->deleteRecord(fileHandle, IndexTable_v, Irid);
 		attributes.clear();
+		
 		free(tableInfo);
 		free(CatalogPage);
 		rbfm_ScanIterator.close();
+		//rbfm->closeFile(fileHandle);
 		return 0;
 	}
 	attributes.clear();
 	free(tableInfo);
 	free(CatalogPage);
-	rbfm_ScanIterator.close();
+	//rbfm_ScanIterator.close();
+	rbfm->closeFile(fileHandle);
 	return 0;
 }
 
@@ -949,8 +966,7 @@ RC RelationManager::indexScan(const string &tableName,
 		const string &attributeName, const void *lowKey, const void *highKey,
 		bool lowKeyInclusive, bool highKeyInclusive,
 		RM_IndexScanIterator &rm_IndexScanIterator) {
-    //cout<<"lowKey:"<<*(float*)lowKey<<endl;
-    //cout<<"highKey:"<<*(int*)highKey<<endl;
+
 	IXFileHandle ixfileHandle;
 	Attribute attribute;
 	vector<Attribute> attrs;
@@ -965,16 +981,18 @@ RC RelationManager::indexScan(const string &tableName,
 	}
 	ix->openFile(attributeName, ixfileHandle);
     
-	//float low;
-   // memcpy(&low, lowKey, sizeof(int));
-    //cout<<"low:"<<low<<endl;
-	//float high;
-    //memcpy(&high, highKey, sizeof(int));
-    //cout<<"high:"<<high<<endl;
+
 
 	ix->scan(ixfileHandle, attribute, lowKey, highKey, lowKeyInclusive,
                     highKeyInclusive, rm_IndexScanIterator.rmindexscaner);
-	cout<<"get out of scan"<<endl;
+	//cout<<"primeNumberOfPages RMISIterator:"<<rm_IndexScanIterator.rmindexscaner.primeFile->getNumberOfPages()<<endl;
+    //cout<<"metaNumberOfPages RMISIterator:"<<rm_IndexScanIterator.rmindexscaner.metaFile->getNumberOfPages()<<endl;
+    //cout<<"primeNumberOfPages RMISixfileHandle:"<<rm_IndexScanIterator.rmindexscaner.ixfileHandle->getPrimPageNumber()<<endl;
+    //cout<<"metaNumberOfPages RMISixfileHandle:"<<rm_IndexScanIterator.rmindexscaner.ixfileHandle->getMetaPageNumber()<<endl;
+
+    //cout<<"primeNumberOfPages RMISixfileHandle:"<<ixfileHandle.getPrimPageNumber()<<endl;
+    //cout<<"metaNumberOfPages RMISixfileHandle:"<<ixfileHandle.getMetaPageNumber()<<endl;
+	//cout<<"get out of scan"<<endl;
 	return 0;
 }
 
