@@ -254,10 +254,7 @@ class GHJoin : public Iterator {
             attrs.push_back(leftdes[i]);
         for(int i=0;i<rightdes.size();i++)
             attrs.push_back(rightdes[i]);
-        for (int i=0; i<=numPart; i++) {
-      //      rbfm->destroyFile("left"+to_string(i));
-      //      rbfm->destroyFile("right"+to_string(i));
-        }
+
     };
     unsigned hash(unsigned numPartitions, Attribute &attribute, void *key);
     private:

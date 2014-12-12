@@ -2468,8 +2468,8 @@ RC IX_ScanIterator::getNextEntry(RID &rid, void *key) {
         return EOF;
     }
     cout<<"currentPage:"<<currentPage<<endl;
-    cout<<"primaryPage:"<<primaryPage<<endl;
-    if (currentPage+1 <= primaryPage) {
+    cout<<"primaryPage:"<<primaryPage<<"length"<<ftell(metaFile->getFile())<<endl;
+     if (currentPage+1 <= primaryPage) {
         cout<<"rangeMatch0"<<endl;
         cout<<"primepagenum: "<<primeFile->getNumberOfPages()<<endl;
         cout<<*primeFile->filen<<endl;

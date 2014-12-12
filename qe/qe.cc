@@ -134,12 +134,14 @@ int getAttrFromRecord(const vector<Attribute> &recordDescriptors,const string at
 void getAttrFromDes(const vector<Attribute> &recordDescriptors,const string attrName,
                       Attribute &attribute)
 {
-    int attrPosition;
-    for(attrPosition=0;attrPosition<recordDescriptors.size();attrPosition++)
+
+    for(int attrPosition=0;attrPosition<recordDescriptors.size();attrPosition++)
     {
         if(recordDescriptors[attrPosition].name==attrName)
+        {
             attribute = recordDescriptors[attrPosition];
             break;
+        }
     }
 }
 
@@ -581,16 +583,19 @@ GHJoin::GHJoin(Iterator *leftIn,Iterator *rightIn, const Condition &condition, c
     rightIn->getAttributes(rightdes);
     getAttrFromDes(leftdes, condition.lhsAttr,leftAttr);
     getAttrFromDes(rightdes, condition.rhsAttr,rightAttr);
+    cout<<leftdes[1].name<<endl;
+    cout<<condition.lhsAttr<<"   "<<leftAttr.name<<endl;
+    cout<<condition.rhsAttr<<"   "<<rightAttr.name<<endl;
     //create tmp rbfm files
     rbfm = RecordBasedFileManager::instance();
     leftdata=malloc(PAGE_SIZE);
     
     vector<string> leftNames;
     vector<string> rightNames;
-    for (int i; i<leftdes.size(); i++) {
+    for (int i=0; i<leftdes.size(); i++) {
         leftNames.push_back(leftdes[i].name);
     }
-    for (int i; i<leftdes.size(); i++) {
+    for (int i=0; i<leftdes.size(); i++) {
         rightNames.push_back(rightdes[i].name);
     }
     
@@ -615,7 +620,7 @@ GHJoin::GHJoin(Iterator *leftIn,Iterator *rightIn, const Condition &condition, c
         leftScan.push_back(liter);
         
         RBFM_ScanIterator riter;
-        rbfm->scan(rightf, rightdes, "", NO_OP, NULL, rightNames, riter);
+        rbfm->scan(rightFile[i], rightdes, "", NO_OP, NULL, rightNames, riter);
         rightScan.push_back(riter);
         
     }
@@ -638,32 +643,37 @@ RC GHJoin::getNextTuple(void *data)
 {
     //get next record
     RID rid;
-
-    if(leftFile[6].getNumberOfPages()==1)
-    {
-    cout<<"CHECKING2::::"<<endl;
-    }
+    cout<<"getnext"<<endl;
     
     while(leftScan[currentPart].getNextRecord(rid, leftdata)==-1) {
         cout<<"Can't find data here!!!"<<currentPart<<endl;
         cout<<"Current page numbers:"<<leftFile[currentPart].getNumberOfPages()<<endl;
         currentPart++;
-        getMap();
         if (currentPart == numPart) {
+            for (int i=0; i<=numPart; i++) {
+                rbfm->destroyFile("left"+to_string(i));
+                rbfm->destroyFile("right"+to_string(i));
+            }
             return -1;
         }
+        getMap();
     }
-    cout<<"22222222"<<endl;
+
     printRecord(leftdes, leftdata);
     //get attribute
     void *attr= malloc(PAGE_SIZE);
-    getAttrFromRecord(leftdes, leftAttr.name, attr, leftdata);
+    getAttrFromRecord(leftdes, cond.lhsAttr, attr, leftdata);
+    cout<<"attrname:"<<cond.lhsAttr<<endl;
+    cout<<"attrvalue:"<<*(int*)attr<<endl;
     do
     {
         //search in the map
         if (rightAttr.type==0) {
+    cout<<"22222222"<<endl;
             if(intmap.find(*(int *)attr)!=intmap.end())
             {
+                cout<<"attrvalue:"<<*(int*)attr<<endl;
+                printRecord(rightdes, intmap[*(int*)attr]);
                 int leftsize = getRecordLength(leftdes, leftdata);
                 memcpy(data, leftdata, leftsize);
                 int rightsize = getRecordLength(rightdes, intmap[*(int*)attr]);
@@ -702,24 +712,34 @@ RC GHJoin::getNextTuple(void *data)
     free(attr);
     currentPart++;
    if (currentPart == numPart) {
+    for (int i=0; i<=numPart; i++) {
+        rbfm->destroyFile("left"+to_string(i));
+        rbfm->destroyFile("right"+to_string(i));
+    }
             return -1;
    }
     getMap();
-    getNextTuple(data);
-    return -1;
+    return getNextTuple(data);
 }
 void GHJoin::getMap()
 {
     void *rightdata = malloc(PAGE_SIZE);
     RID rid;
     void *attr = malloc(PAGE_SIZE);
+    //cout<<"Map 11111"<<endl;
     while (rightScan[currentPart].getNextRecord(rid, rightdata)!=-1) {
+        cout<<"currentpart:"<<currentPart<<endl;
+       // cout<<"Map 2222"<<endl;
+       // printRecord(rightdes, rightdata);
         int recordlength = getRecordLength(rightdes, rightdata);
         getAttrFromRecord(rightdes, rightAttr.name, attr, rightdata);
         if (rightAttr.type==0) {
+      //  cout<<"Map 3333"<<endl;
+          //  cout<<"recordlength"<<recordlength<<endl;
                 void *tmp = malloc(recordlength);
                  memcpy(tmp, rightdata, recordlength);
                 intmap[*(int *)attr]=tmp;
+     //   cout<<"Map 4444"<<endl;
         }
         else if(rightAttr.type==1)
         {
@@ -740,6 +760,7 @@ void GHJoin::getMap()
     }
     free(rightdata);
     free(attr);
+ //   cout<<"Map end"<<endl;
 }
 unsigned GHJoin::hash(unsigned numPartitions, Attribute &attribute, void *key) {
     int value;
@@ -771,20 +792,28 @@ void GHJoin::partition()
     while (leftIn->getNextTuple(record)!=-1) {
         getAttrFromRecord(leftdes, cond.lhsAttr, attr, record);
         unsigned hashresult = hash(numPart, leftAttr, attr);
-       // cout<<"HASHRESULT:"<<hashresult<<endl;
-       //printRecord(leftdes, record);
         int rc = rbfm->insertRecord(leftFile[hashresult], leftdes, record, rid);
+        /*
         void *tmp = malloc(PAGE_SIZE);
         rc = rbfm->readRecord(leftFile[hashresult], leftdes, rid, tmp);
         cout<<"RC!"<<rc<<rid.pageNum<<rid.slotNum<<endl;
         printRecord(leftdes, tmp);
         cout<<"Number of pages after insertion:"<<leftFile[hashresult].getNumberOfPages()<<endl;
-        }
+        */
+         }
     while (rightIn->getNextTuple(record)!=-1) {
         getAttrFromRecord(rightdes, cond.rhsAttr, attr, record);
         unsigned hashresult = hash(numPart, rightAttr, attr);
         rbfm->insertRecord(rightFile[hashresult], rightdes, record, rid);
-    }
+       /*
+        void *tmp = malloc(PAGE_SIZE);
+        int rc = rbfm->readRecord(rightFile[hashresult], rightdes, rid, tmp);
+        cout<<hashresult<<endl;
+        cout<<"RC!"<<rc<<rid.pageNum<<rid.slotNum<<endl;
+        printRecord(rightdes, tmp);
+        cout<<"Number of pages after insertion:"<<rightFile[hashresult].getNumberOfPages()<<endl;
+    */
+        }
     free(record);
     free(attr);
 }
