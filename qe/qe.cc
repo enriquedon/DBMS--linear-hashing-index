@@ -131,6 +131,18 @@ int getAttrFromRecord(const vector<Attribute> &recordDescriptors,const string at
         return sizeof(int);
     }
 }
+void getAttrFromDes(const vector<Attribute> &recordDescriptors,const string attrName,
+                      Attribute &attribute)
+{
+    int attrPosition;
+    for(attrPosition=0;attrPosition<recordDescriptors.size();attrPosition++)
+    {
+        if(recordDescriptors[attrPosition].name==attrName)
+            attribute = recordDescriptors[attrPosition];
+            break;
+    }
+}
+
 bool Filter::checkCondition(void *data,Condition cond,Iterator *initer)
 {
     //pick up attribute value
@@ -567,9 +579,216 @@ GHJoin::GHJoin(Iterator *leftIn,Iterator *rightIn, const Condition &condition, c
     numPart = numPartitions;
     leftIn->getAttributes(leftdes);
     rightIn->getAttributes(rightdes);
+    getAttrFromDes(leftdes, condition.lhsAttr,leftAttr);
+    getAttrFromDes(rightdes, condition.rhsAttr,rightAttr);
+    //create tmp rbfm files
+    rbfm = RecordBasedFileManager::instance();
+    leftdata=malloc(PAGE_SIZE);
     
+    vector<string> leftNames;
+    vector<string> rightNames;
+    for (int i; i<leftdes.size(); i++) {
+        leftNames.push_back(leftdes[i].name);
+    }
+    for (int i; i<leftdes.size(); i++) {
+        rightNames.push_back(rightdes[i].name);
+    }
     
+    for (int i=0; i<numPartitions; i++) {
+        string leftname = "left"+to_string(i);
+        string rightname = "right"+to_string(i);
+        //createFile
+        rbfm->createFile(leftname);
+        rbfm->createFile(rightname);
+       
+        //get Filehandle
+        FileHandle leftf;
+        rbfm->openFile(leftname, leftf);
+        leftFile.push_back(leftf);
+        FileHandle rightf;
+        rbfm->openFile(rightname, rightf);
+        rightFile.push_back(rightf);
+        
+        //get scan iter
+        RBFM_ScanIterator liter;
+        rbfm->scan(leftFile[i], leftdes, "", NO_OP, NULL, leftNames, liter);
+        leftScan.push_back(liter);
+        
+        RBFM_ScanIterator riter;
+        rbfm->scan(rightf, rightdes, "", NO_OP, NULL, rightNames, riter);
+        rightScan.push_back(riter);
+        
+    }
+    if(leftFile[5].getFile()==leftFile[6].getFile())
+    {
+    cout<<"CHECKING::::"<<endl;
+    }
+    //partition the left and right data
+    partition();
+    cout<<"AFTER PARTITION"<<endl;
+    if(leftFile[6].getNumberOfPages()==1)
+    {
+    cout<<"CHECKING::::"<<endl;
+    }
+    //get map data
+    currentPart = 0;
+    getMap();
 }
+RC GHJoin::getNextTuple(void *data)
+{
+    //get next record
+    RID rid;
+
+    if(leftFile[6].getNumberOfPages()==1)
+    {
+    cout<<"CHECKING2::::"<<endl;
+    }
+    
+    while(leftScan[currentPart].getNextRecord(rid, leftdata)==-1) {
+        cout<<"Can't find data here!!!"<<currentPart<<endl;
+        cout<<"Current page numbers:"<<leftFile[currentPart].getNumberOfPages()<<endl;
+        currentPart++;
+        getMap();
+        if (currentPart == numPart) {
+            return -1;
+        }
+    }
+    cout<<"22222222"<<endl;
+    printRecord(leftdes, leftdata);
+    //get attribute
+    void *attr= malloc(PAGE_SIZE);
+    getAttrFromRecord(leftdes, leftAttr.name, attr, leftdata);
+    do
+    {
+        //search in the map
+        if (rightAttr.type==0) {
+            if(intmap.find(*(int *)attr)!=intmap.end())
+            {
+                int leftsize = getRecordLength(leftdes, leftdata);
+                memcpy(data, leftdata, leftsize);
+                int rightsize = getRecordLength(rightdes, intmap[*(int*)attr]);
+                memcpy((char*)data+leftsize, intmap[*(int*)attr], rightsize);
+                return 0;
+            }
+        }
+        else if(rightAttr.type==1)
+        {
+            if(floatmap.find(*(float *)attr)!=floatmap.end())
+            {
+                int leftsize = getRecordLength(leftdes, leftdata);
+                memcpy(data, leftdata, leftsize);
+                int rightsize = getRecordLength(rightdes, floatmap[*(float*)attr]);
+                memcpy((char*)data+leftsize, floatmap[*(float*)attr], rightsize);
+                return 0;
+            }
+        }
+        else
+        {
+            string groupstring="";
+            int stringLength;
+            memcpy(&stringLength, (char*)attr, sizeof(int));
+            groupstring.assign((char*)attr+sizeof(int), (char*)attr+sizeof(int) + stringLength);
+            if(stringmap.find(groupstring)!=stringmap.end())
+            {
+                int leftsize = getRecordLength(leftdes, leftdata);
+                memcpy(data, leftdata, leftsize);
+                int rightsize = getRecordLength(rightdes, stringmap[groupstring]);
+                memcpy((char*)data+leftsize, stringmap[groupstring], rightsize);
+                return 0;
+            }
+        }
+    }
+    while(leftScan[currentPart].getNextRecord(rid,leftdata)!=-1);
+    free(attr);
+    currentPart++;
+   if (currentPart == numPart) {
+            return -1;
+   }
+    getMap();
+    getNextTuple(data);
+    return -1;
+}
+void GHJoin::getMap()
+{
+    void *rightdata = malloc(PAGE_SIZE);
+    RID rid;
+    void *attr = malloc(PAGE_SIZE);
+    while (rightScan[currentPart].getNextRecord(rid, rightdata)!=-1) {
+        int recordlength = getRecordLength(rightdes, rightdata);
+        getAttrFromRecord(rightdes, rightAttr.name, attr, rightdata);
+        if (rightAttr.type==0) {
+                void *tmp = malloc(recordlength);
+                 memcpy(tmp, rightdata, recordlength);
+                intmap[*(int *)attr]=tmp;
+        }
+        else if(rightAttr.type==1)
+        {
+            void *tmp = malloc(recordlength);
+            memcpy(tmp, rightdata, recordlength);
+            floatmap[*(float *)attr]=tmp;
+        }
+        else
+        {
+            string groupstring="";
+            int stringLength;
+            memcpy(&stringLength, (char*)attr, sizeof(int));
+            groupstring.assign((char*)attr+sizeof(int), (char*)attr+sizeof(int) + stringLength);
+            void *tmp = malloc(recordlength);
+            memcpy(tmp, rightdata, recordlength);
+            stringmap[groupstring]=tmp;
+        }
+    }
+    free(rightdata);
+    free(attr);
+}
+unsigned GHJoin::hash(unsigned numPartitions, Attribute &attribute, void *key) {
+    int value;
+    int result = 0;
+    if (attribute.type == 0) {
+        memcpy(&value, key, sizeof(int));
+    } else {
+        if (attribute.type == 1) {
+            memcpy(&value, key, sizeof(float));
+            value *= 101;
+        } else {
+            int length;
+            memcpy(&length, key, sizeof(int));
+            char first;
+            char last;
+            memcpy(&first, (char*)key+sizeof(int), sizeof(char));
+            memcpy(&last, (char*) key + sizeof(int)+length - 1, sizeof(char));
+            value = int(first) + int(last);
+        }
+    }
+    result = value % numPartitions ;
+    return result;
+}
+void GHJoin::partition()
+{
+    void *record = malloc(PAGE_SIZE);
+    void *attr = malloc(PAGE_SIZE);
+    RID rid;
+    while (leftIn->getNextTuple(record)!=-1) {
+        getAttrFromRecord(leftdes, cond.lhsAttr, attr, record);
+        unsigned hashresult = hash(numPart, leftAttr, attr);
+       // cout<<"HASHRESULT:"<<hashresult<<endl;
+       //printRecord(leftdes, record);
+        int rc = rbfm->insertRecord(leftFile[hashresult], leftdes, record, rid);
+        void *tmp = malloc(PAGE_SIZE);
+        rc = rbfm->readRecord(leftFile[hashresult], leftdes, rid, tmp);
+        cout<<"RC!"<<rc<<rid.pageNum<<rid.slotNum<<endl;
+        printRecord(leftdes, tmp);
+        cout<<"Number of pages after insertion:"<<leftFile[hashresult].getNumberOfPages()<<endl;
+        }
+    while (rightIn->getNextTuple(record)!=-1) {
+        getAttrFromRecord(rightdes, cond.rhsAttr, attr, record);
+        unsigned hashresult = hash(numPart, rightAttr, attr);
+        rbfm->insertRecord(rightFile[hashresult], rightdes, record, rid);
+    }
+    free(record);
+    free(attr);
+}
+
 
 
 

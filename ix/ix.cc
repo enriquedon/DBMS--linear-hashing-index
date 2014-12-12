@@ -113,15 +113,16 @@ RC IndexManager::openFile(const string &fileName, IXFileHandle &ixfileHandle) {
 
 	string metaFile = fileName + "_meta";
 	string primFile = fileName + "_primary";
-	FileHandle fhMeta;
-	FileHandle fhPrim;
+   // FileHandle fhMeta;
+   // FileHandle fhPrim;
+	FileHandle &fhMeta = ixfileHandle.getMetaFile();
+	FileHandle &fhPrim = ixfileHandle.getPrimFile();
 
 	if (PagedFileManager::instance()->openFile(metaFile.c_str(), fhMeta) == 0) {
 		getLevelNext(ixfileHandle);
 		if (PagedFileManager::instance()->openFile(primFile.c_str(), fhPrim)
 				== 0) {
-            cout<<primFile.c_str()<<endl;
-			ixfileHandle.passFileHandle(fhMeta, fhPrim);
+			//ixfileHandle.passFileHandle(fhMeta, fhPrim);
 			fseek(fhPrim.getFile(), 0, SEEK_END);
 			ixfileHandle.setPrimPageNumber(ftell(fhPrim.getFile()) / PAGE_SIZE);
 			fseek(fhPrim.getFile(), 0, SEEK_SET);
@@ -129,7 +130,8 @@ RC IndexManager::openFile(const string &fileName, IXFileHandle &ixfileHandle) {
 			fseek(fhMeta.getFile(), 0, SEEK_END);
 			ixfileHandle.setMetaPageNumber(ftell(fhMeta.getFile()) / PAGE_SIZE);
 			fseek(fhMeta.getFile(), 0, SEEK_SET);
-
+            cout<<"fhmetanumber:"<<fhMeta.getNumberOfPages()<<endl;
+            cout<<"fhprimner:"<<fhPrim.getNumberOfPages()<<endl;
 			return 0;
 		}
 	}
@@ -2147,6 +2149,10 @@ void IX_ScanIterator::init(IXFileHandle &ixfileHandle, const Attribute &attribut
     currentPage = 0;
     primaryPage = primeFile->getNumberOfPages();
     totalPage = metaFile->getNumberOfPages() + primaryPage -1;
+    
+    cout<<"PPPPPPPPPPPPPPP:"<<primaryPage<<endl;
+    cout<<*primeFile->filen<<endl;
+    cout<<"TTTTTTTTTTTTTT: "<<totalPage<<endl;
 
     if (attribute.type!=2) {
         keySize = sizeof(int);
@@ -2465,9 +2471,10 @@ RC IX_ScanIterator::getNextEntry(RID &rid, void *key) {
     cout<<"primaryPage:"<<primaryPage<<endl;
     if (currentPage+1 <= primaryPage) {
         cout<<"rangeMatch0"<<endl;
-        primeFile->readPage(currentPage, tmpData);
-
-        //ixfileHandle->addread();
+        cout<<"primepagenum: "<<primeFile->getNumberOfPages()<<endl;
+        cout<<*primeFile->filen<<endl;
+        int rc = primeFile->readPage(currentPage, tmpData);
+        cout<<"rc:"<<rc<<endl;
     }
     else
     {

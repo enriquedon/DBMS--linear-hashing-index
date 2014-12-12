@@ -242,24 +242,49 @@ class GHJoin : public Iterator {
             const Condition &condition,      // Join condition (CompOp is always EQ)
             const unsigned numPartitions     // # of partitions for each relation (decided by the optimizer)
       );
-      ~GHJoin(){};
+      ~GHJoin(){
+      };
 
-      RC getNextTuple(void *data){return QE_EOF;};
+    RC getNextTuple(void *data);
       // For attribute in vector<Attribute>, name it as rel.attr
-      void getAttributes(vector<Attribute> &attrs) const{};
+      void getAttributes(vector<Attribute> &attrs) const
+    {
+        attrs.clear();
+        for(int i=0;i<leftdes.size();i++)
+            attrs.push_back(leftdes[i]);
+        for(int i=0;i<rightdes.size();i++)
+            attrs.push_back(rightdes[i]);
+        for (int i=0; i<=numPart; i++) {
+      //      rbfm->destroyFile("left"+to_string(i));
+      //      rbfm->destroyFile("right"+to_string(i));
+        }
+    };
+    unsigned hash(unsigned numPartitions, Attribute &attribute, void *key);
     private:
+    void partition();
+    void getMap();
+    RecordBasedFileManager *rbfm;
     Iterator *leftIn;
     Iterator *rightIn;
     Condition cond;
     Attribute rightAttr;
     Attribute leftAttr;
     vector <Attribute> rightdes,leftdes;
-    unsigned numPart;
-    map <int, vector<void*> > leftmap;
-    map <int, vector<void*> > righttmap;
     
-    //map <float,pair<void *, int> > floatmap;
-    //map <string, pair<void *, int> > stringmap;
+    unsigned numPart;
+    vector<FileHandle> leftFile;
+    vector<FileHandle> rightFile;
+    
+    vector<RBFM_ScanIterator> leftScan;
+    vector<RBFM_ScanIterator> rightScan;
+    
+    map <int, void* > intmap;
+    map <float, void* > floatmap;
+    map <string, void* > stringmap;
+    
+    unsigned currentPart;
+    void *leftdata;
+
 };
 
 
@@ -289,6 +314,7 @@ class BNLJoin : public Iterator {
         Condition cond;
         Attribute rightAttr;
         Attribute leftAttr;
+
         unsigned numRec;
         void *leftdata;
         vector<void*> records;

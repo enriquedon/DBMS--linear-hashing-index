@@ -949,8 +949,6 @@ RC RelationManager::indexScan(const string &tableName,
 		const string &attributeName, const void *lowKey, const void *highKey,
 		bool lowKeyInclusive, bool highKeyInclusive,
 		RM_IndexScanIterator &rm_IndexScanIterator) {
-    //cout<<"lowKey:"<<*(float*)lowKey<<endl;
-    //cout<<"highKey:"<<*(int*)highKey<<endl;
 	IXFileHandle ixfileHandle;
 	Attribute attribute;
 	vector<Attribute> attrs;
@@ -963,7 +961,9 @@ RC RelationManager::indexScan(const string &tableName,
 			break;
 		}
 	}
-	ix->openFile(attributeName, ixfileHandle);
+	int rc = ix->openFile(attributeName, ixfileHandle);
+    cout << "openFilerc: "<<rc<<endl;
+    cout <<"attributeName: "<<attributeName<<endl;
     
 	//float low;
    // memcpy(&low, lowKey, sizeof(int));

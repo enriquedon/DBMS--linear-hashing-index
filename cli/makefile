@@ -1,7 +1,7 @@
 include ../makefile.inc
 
 #all: libcli.a clitest_01 clitest_02 clitest_03 clitest_04 clitest_05 clitest_06 clitest_07 clitest_08 clitest_09 clitest_10 clitest_11 clitest_12 start
-all: libcli.a clitest_04 clitest_11 start
+all: libcli.a clitest_07 clitest_04 clitest_11 start
 
 # lib file dependencies
 libcli.a: libcli.a(cli.o)  # and possibly other .o files
@@ -21,7 +21,7 @@ clitest_04.o: cli.h
 
 #clitest_06.o: cli.h
 
-#clitest_07.o: cli.h
+clitest_07.o: cli.h
 
 #clitest_08.o: cli.h
 
@@ -48,7 +48,7 @@ clitest_04: clitest_04.o libcli.a $(CODEROOT)/qe/libqe.a $(CODEROOT)/ix/libix.a 
 
 #clitest_06: clitest_06.o libcli.a $(CODEROOT)/qe/libqe.a $(CODEROOT)/ix/libix.a $(CODEROOT)/rm/librm.a $(CODEROOT)/rbf/librbf.a
 
-#clitest_07: clitest_07.o libcli.a $(CODEROOT)/qe/libqe.a $(CODEROOT)/ix/libix.a $(CODEROOT)/rm/librm.a $(CODEROOT)/rbf/librbf.a
+clitest_07: clitest_07.o libcli.a $(CODEROOT)/qe/libqe.a $(CODEROOT)/ix/libix.a $(CODEROOT)/rm/librm.a $(CODEROOT)/rbf/librbf.a
 
 #clitest_08: clitest_08.o libcli.a $(CODEROOT)/qe/libqe.a $(CODEROOT)/ix/libix.a $(CODEROOT)/rm/librm.a $(CODEROOT)/rbf/librbf.a
 
@@ -81,6 +81,7 @@ $(CODEROOT)/qe/libqe.a:
 .PHONY: clean
 clean:
 	-rm cli_columns cli_indexes cli_tables Column Tables employee IndexTables employee.Height_meta employee.Height_primary
+	-rm left* right*
 	-rm Columns Tables ages salary employee   
 	-rm clitest_01 clitest_02 clitest_03 clitest_04 clitest_05 clitest_06 clitest_07 clitest_08 clitest_09 clitest_10 clitest_11 clitest_12 start *.a *.o *~
 	$(MAKE) -C $(CODEROOT)/rbf clean

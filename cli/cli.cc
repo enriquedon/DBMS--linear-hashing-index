@@ -8,7 +8,10 @@
 // TODO: update delimiters later
 #define DELIMITERS " ,()\""
 
+//define DATABASE_FOLDER "/Users/shuaiweicui/lastpro/project4/cli"
+
 // CVS file read delimiters
+//#define DATABASE_FOLDER "/Users/shuaiweicui/lastpro/project4/cli"
 #define CVS_DELIMITERS ","
 #define CLI_TABLES "cli_tables"
 #define CLI_COLUMNS "cli_columns"
@@ -644,7 +647,6 @@ RC CLI::run(Iterator *it) {
 	
   for (uint i=0; i < attrs.size(); i++)
     outputBuffer.push_back(attrs[i].name);
-
   while (it->getNextTuple(data) != QE_EOF) {
     if ( updateOutputBuffer(outputBuffer, data, attrs) != 0)
       return error(__LINE__);

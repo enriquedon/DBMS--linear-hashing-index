@@ -50,8 +50,10 @@ public:
     FILE* getFile();                                            //get file pointer
     void setPageNumber(unsigned number);                        //set pageNumber
     RC collectCounterValues(unsigned &readPageCount, unsigned &writePageCount, unsigned &appendPageCount);
+    const char *filen;
 private:
     FILE *file;
+
     unsigned pageNumber;
     unsigned readPageCounter;
     unsigned writePageCounter;

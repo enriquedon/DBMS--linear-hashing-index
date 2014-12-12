@@ -546,6 +546,8 @@ RC RBFM_ScanIterator::getNextRecord(RID &rid, void *data)
         }
         
     }
+    cout<<"page of numbers:"<<fileHandle.getNumberOfPages()<<endl;
+    cout<<"Currentrid"<<currRid.pageNum<<" "<<currRid.slotNum<<endl;
     free(currPage);
     free(attrValue);
     return RBFM_EOF;
