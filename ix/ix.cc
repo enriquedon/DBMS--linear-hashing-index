@@ -1901,18 +1901,18 @@ unsigned IndexManager::hash(const Attribute &attribute, const void *key) {
         if (attribute.type == 1) {
             memcpy(&value, key, sizeof(float));
             //value = value & 0xfffff000;
-            value = value >> 12;
+            value *= 100;
         } else {
             int length;
             memcpy(&length, key, sizeof(int));
             char first;
             char last;
-            memcpy(&first, key, sizeof(char));
+            memcpy(&first, (char*)key+length, sizeof(char));
             memcpy(&last, (char*) key + length - 1, sizeof(char));
             value = int(first) + int(last);
         }
     }
-   result = value % (bucketInit<<level);
+   result = (int)value % (bucketInit<<level);
     if (result < next) {
         result = value % (bucketInit<<(level+1));
         //cout<<"????????????????"<<endl;
