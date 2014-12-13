@@ -189,7 +189,7 @@ public:
               bool highKeyInclusive);
 
 	RC getNextEntry(RID &rid, void *key);  		// Get next matching entry
-    
+
     RC close();             						// Terminate index scan
     FileHandle tmpmeta;
     FileHandle tmpprime;
@@ -201,6 +201,7 @@ private:
     IXFileHandle *ixfileHandle;
     FileHandle *metaFile;
     FileHandle *primeFile;
+
     Attribute attribute;
     int keySize;
     void *lowKey;
