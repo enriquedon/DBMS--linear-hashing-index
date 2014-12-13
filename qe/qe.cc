@@ -560,5 +560,42 @@ RC BNLJoin::getNextTuple(void *data)
     return -1;
 }
 
+INLJoin::INLJoin(Iterator *leftIn,           // Iterator of input R
+               IndexScan *rightIn,          // IndexScan Iterator of input S
+               const Condition &condition   // Join condition
+        ){
+    cout<<"000000000000"<<endl;
+    leftInput=leftIn;
+    rightInput=rightIn;
+    cond=condition;
+    leftIn->getAttributes(leftdes);
+    rightIn->getAttributes(rightdes);
+    leftdata=malloc(PAGE_SIZE);
+    rightdata=malloc(PAGE_SIZE);
+
+}
+
+RC INLJoin::getNextTuple(void *data){
+    if (leftInput->getNextTuple(leftdata)==-1) {
+        return QE_EOF;
+    }
+    do
+    {
+        memset(leftdata,0,PAGE_SIZE);       
+        memset(rightdata,0,PAGE_SIZE);
+        while(rightInput->getNextTuple(rightdata)!=-1); {
+            if(checkSat(leftdes, rightdes, leftdata, rightdata, cond))
+            {
+                int leftLength= getRecordLength(leftdes, leftdata);
+                memcpy(data,leftdata,leftLength);
+                int rightLength= getRecordLength(rightdes, rightdata);
+                memcpy((char *)data+leftLength,rightdata,rightLength);
+                return 0;
+            }
+        }
+    }while(leftInput->getNextTuple(leftdata)!=-1);
+    return QE_EOF;
+};
+
 
 // ... the rest of your implementations go here

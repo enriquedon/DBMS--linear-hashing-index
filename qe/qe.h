@@ -153,18 +153,36 @@ class IndexScan : public Iterator
                          bool highKeyInclusive)
         {
             iter->close();
+            if(lowKey!=NULL){
+                cout<<"lowKey:"<<*(float*)lowKey<<endl;
+            }
+            if(highKey!=NULL){
+                cout<<"highKey:"<<*(float*)highKey<<endl;
+            }
             delete iter;
+            //RM_IndexScanIterator *iter1;
             iter = new RM_IndexScanIterator();
-            cout<<"lowKey:"<<*(float*)lowKey<<endl;
+
+            
             rm.indexScan(tableName, attrName, lowKey, highKey, lowKeyInclusive,
                            highKeyInclusive, *iter);
+            //cout<<"primeNumberOfPages IndexScan:"<<iter->rmindexscaner.primeFile->getNumberOfPages()<<endl;
+            //cout<<"metaNumberOfPages IndexScan:"<<iter->rmindexscaner.metaFile->getNumberOfPages()<<endl;
+            //cout<<"primeNumberOfPages IndexScan:"<<iter->rmindexscaner.ixfileHandle->getPrimPageNumber()<<endl;
+            //cout<<"metaNumberOfPages IndexScan:"<<iter->rmindexscaner.ixfileHandle->getMetaPageNumber()<<endl;
         };
 
         RC getNextTuple(void *data)
         {
-            cout<<"indexcsan getNextTuple"<<endl;
+
+
+            //cout<<"primeNumberOfPages IndexScangetNextTuple:"<<iter->rmindexscaner.primeFile->getNumberOfPages()<<endl;
+            //cout<<"metaNumberOfPages IndexScangetNextTuple:"<<iter->rmindexscaner.metaFile->getNumberOfPages()<<endl;
+            //cout<<"primeNumberOfPages IndexScangetNextTuple:"<<iter->rmindexscaner.ixfileHandle->getPrimPageNumber()<<endl;
+            //cout<<"metaNumberOfPages IndexScangetNextTuple:"<<iter->rmindexscaner.ixfileHandle->getMetaPageNumber()<<endl;
+
             int rc = iter->getNextEntry(rid, key);
-            cout<<"indexcsan getNextTuple key:"<<*(float*)key<<endl;
+            //cout<<"indexcsan getNextTuple key:"<<*(float*)key<<endl;
             if(rc == 0)
             {
                 rc = rm.readTuple(tableName.c_str(), rid, data);
@@ -178,7 +196,6 @@ class IndexScan : public Iterator
             attrs = this->attrs;
             unsigned i;
 
-            // For attribute in vector<Attribute>, name it as rel.attr
             for(i = 0; i < attrs.size(); ++i)
             {
                 string tmp = tableName;
@@ -189,7 +206,7 @@ class IndexScan : public Iterator
         };
 
         ~IndexScan()
-        {
+        {          
             iter->close();
         };
 };
@@ -289,12 +306,30 @@ class INLJoin : public Iterator {
         INLJoin(Iterator *leftIn,           // Iterator of input R
                IndexScan *rightIn,          // IndexScan Iterator of input S
                const Condition &condition   // Join condition
-        ){};
-        ~INLJoin(){};
+        );
+        ~INLJoin(){
+            free(leftdata);
+            free(rightdata);
+        };
 
-        RC getNextTuple(void *data){return QE_EOF;};
+        RC getNextTuple(void *data);
         // For attribute in vector<Attribute>, name it as rel.attr
-        void getAttributes(vector<Attribute> &attrs) const{};
+        void getAttributes(vector<Attribute> &attrs) const{
+            attrs.clear();
+            for(int i=0;i<leftdes.size();i++)
+                attrs.push_back(leftdes[i]);
+            for(int i=0;i<rightdes.size();i++)
+                attrs.push_back(rightdes[i]);
+        };
+    private:
+        Iterator *leftInput;
+        IndexScan *rightInput;
+        Condition cond;
+        Attribute rightAttr;
+        Attribute leftAttr;
+        void *leftdata;
+        void *rightdata;
+        vector <Attribute> rightdes,leftdes;
 };
 
 
