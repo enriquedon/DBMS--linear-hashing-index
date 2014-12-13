@@ -31,22 +31,12 @@ int getVarcharSlot(void *slotData, void* data, int offset)
     memcpy(slotData, (char*)data+exactPosition, slotlength);
     return slotlength;
 }
-void getVarcharKeyRid(void *key, RID &rid, void *data, int offset)
-{
-    void *slotData=malloc(PAGE_SIZE);
-    int length=getVarcharSlot(slotData, data, offset);
-    memcpy(key, (char*)slotData, length-2*sizeof(int));
-    memcpy(&rid.pageNum, (char*)slotData+length-2*sizeof(int), sizeof(int));
-    memcpy(&rid.slotNum, (char*)slotData+length-sizeof(int), sizeof(int));
-    free(slotData);
-}
 void getVarcharRid(RID &rid, void *data, int offset)
 {
     void *slotData=malloc(PAGE_SIZE);
     int length=getVarcharSlot(slotData, data, offset);
     memcpy(&rid.pageNum, (char*)slotData+length-2*sizeof(int), sizeof(int));
     memcpy(&rid.slotNum, (char*)slotData+length-sizeof(int), sizeof(int));
-    free(slotData);
 }
 void getValueForVarchar(string &str, void *data)
 {
@@ -94,9 +84,7 @@ RC IndexManager::initiateMeta(string metaFile, const unsigned &numberOfPages) {
 	//useful?
 	//memcpy((char*) dataPage + PAGE_SIZE - sizeof(int), &usedSize, sizeof(int));
 	fhMeta.appendPage(dataPage);
-    memset(dataPage, 0, PAGE_SIZE);
 	free(dataPage);
-    PagedFileManager::instance()->closeFile(fhMeta);
 	return 0;
 }
 
@@ -110,7 +98,6 @@ RC IndexManager::initiatePrim(string primFile, const unsigned &numberOfPages) {
 		fhPrim.appendPage(dataPage);
 	}
 	free(dataPage);
-    PagedFileManager::instance()->closeFile(fhPrim);
 	return 0;
 }
 
@@ -126,14 +113,16 @@ RC IndexManager::openFile(const string &fileName, IXFileHandle &ixfileHandle) {
 
 	string metaFile = fileName + "_meta";
 	string primFile = fileName + "_primary";
-	FileHandle fhMeta;
-	FileHandle fhPrim;
+   // FileHandle fhMeta;
+   // FileHandle fhPrim;
+	FileHandle &fhMeta = ixfileHandle.getMetaFile();
+	FileHandle &fhPrim = ixfileHandle.getPrimFile();
 
 	if (PagedFileManager::instance()->openFile(metaFile.c_str(), fhMeta) == 0) {
 		getLevelNext(ixfileHandle);
 		if (PagedFileManager::instance()->openFile(primFile.c_str(), fhPrim)
 				== 0) {
-			ixfileHandle.passFileHandle(fhMeta, fhPrim);
+			//ixfileHandle.passFileHandle(fhMeta, fhPrim);
 			fseek(fhPrim.getFile(), 0, SEEK_END);
 			ixfileHandle.setPrimPageNumber(ftell(fhPrim.getFile()) / PAGE_SIZE);
 			fseek(fhPrim.getFile(), 0, SEEK_SET);
@@ -141,7 +130,6 @@ RC IndexManager::openFile(const string &fileName, IXFileHandle &ixfileHandle) {
 			fseek(fhMeta.getFile(), 0, SEEK_END);
 			ixfileHandle.setMetaPageNumber(ftell(fhMeta.getFile()) / PAGE_SIZE);
 			fseek(fhMeta.getFile(), 0, SEEK_SET);
-
 			return 0;
 		}
 	}
@@ -182,8 +170,9 @@ RC IndexManager::getLevelNext(IXFileHandle &ixfileHandle) {
 	ixfileHandle.setLevel(level);
 	ixfileHandle.setNext(next);
 	ixfileHandle.setBucket(bucket);
-
 	free(dataPage);
+	//PagedFileManager::instance()->closeFile(fhMeta);
+	//PagedFileManager::instance()->closeFile(fhPrim);
 	return 0;
 }
 
@@ -241,7 +230,7 @@ RC IndexManager::insertEntry(IXFileHandle &ixfileHandle, const Attribute &attrib
     int startPage = insertToPage(position, pageNumbers, key, attribute, pages, rid);
     writeToPages(ixfileHandle, metaHandle, primaryHandle, startPage, pages, pagePositions, overflowPages);
     if (pageNumbers.size()>1) {
-        split(attribute,attribute.name, metaHandle, primaryHandle);
+        split(attribute,attribute.name, metaHandle, primaryHandle);        
     }
 
 	return 0;
@@ -893,7 +882,6 @@ RC IndexManager::split(const Attribute &attribute, string attributeName,
     int next = attributeTable[attributeName][1];
     void *pagePrim = malloc(PAGE_SIZE);
     memset(pagePrim, 0, PAGE_SIZE);
-
     if (primaryFileHandle.readPage(next, pagePrim) == 0) {
         vector<int> usedOFnumber;
         vector<void *> oldPages;
@@ -925,6 +913,8 @@ RC IndexManager::split(const Attribute &attribute, string attributeName,
         updateMetaAfterSplit(attributeName, level, next);
         freeVector(oldPages);
     }
+    
+    //free(pagePrim);cout
     
     return 0;
 }
@@ -992,6 +982,7 @@ RC IndexManager::writeRehashedPages(const Attribute &attribute,
         writeOverflow(metaFileHandle, newPages1, numOfOverflowPages,usedOFnumber,used);
     } else {
         primaryFileHandle.writePage(pageNumber1, newPage1);
+        //cout<<"write primpage to:"<<pageNumber1<<endl;
     }
     if (newPages2.size() > 1) {
         memcpy((char *) newPage2 + PAGE_SIZE - sizeof(int), &usedOFnumber[used],
@@ -1003,6 +994,7 @@ RC IndexManager::writeRehashedPages(const Attribute &attribute,
         
     } else {
         primaryFileHandle.appendPage(newPage2);
+        //cout<<"pageNumber2:"<<pageNumber2<<endl;
     }
     return 0;
 }
@@ -1013,6 +1005,7 @@ RC IndexManager::writeOverflow(FileHandle &metaFileHandle,
     int writeIN;
     
     while (remainPages > 0) {
+        //cout<<"remainPages:"<<remainPages<<endl;
         if (remainPages > 1) {
             if(used<usedOFnumber.size()){
                 writeIN=usedOFnumber[used];
@@ -1026,6 +1019,7 @@ RC IndexManager::writeOverflow(FileHandle &metaFileHandle,
                 free(dataPage);
                 //used++;
             }
+            //cout<<"numOfOverflowPages:"<<numOfOverflowPages<<"usedOFnumber.size():"<<usedOFnumber.size()<<endl;
             void *dataPage2 = newPages[newPages.size() - remainPages];
             memcpy((char *) dataPage2 + PAGE_SIZE - sizeof(int),
                    &writeIN, sizeof(int));
@@ -1037,6 +1031,7 @@ RC IndexManager::writeOverflow(FileHandle &metaFileHandle,
             used++;
             metaFileHandle.writePage(writeIN, dataPage2);
         } else {
+            //cout<<"numOfOverflowPages:"<<numOfOverflowPages<<"usedOFnumber.size():"<<usedOFnumber.size()<<endl;
             void *dataPage = newPages[newPages.size() - remainPages];
             //metaFileHandle.appendPage(dataPage);
             unsigned Entries;
@@ -1685,7 +1680,7 @@ int IndexManager::deleteFromPages(int position, vector<int> &pageNumbers, const 
         while (nextPage != 0) {
             //get headData
             void *headData = malloc(PAGE_SIZE);
-            int tmplength = getVarcharSlot(headData,page[currentPage+1], 0);
+            int tmplength = getVarcharSlot(headData,page[currentPage], 0);
             
             if (checkVarcharFull(1, tmplength, page[currentPage])) {
                 break;
@@ -1701,21 +1696,14 @@ int IndexManager::deleteFromPages(int position, vector<int> &pageNumbers, const 
                 memcpy((char*)page[currentPage]+PAGE_SIZE-(pageNumbers[currentPage]+4)*sizeof(int), &lastoffset, sizeof(int));
                 
                 //add pagenumber
-                pageNumbers[currentPage] += 1;
-                memcpy( (char*)page[currentPage] + PAGE_SIZE - 2*sizeof(int), &pageNumbers[currentPage], sizeof(int));
+                pageNumbers[pagePosition] += 1;
+                memcpy( (char*)page[pagePosition] + PAGE_SIZE - 2*sizeof(int), &pageNumbers[pagePosition], sizeof(int));
                 
                 deleteFromCertianPage(0, page, pageNumbers, currentPage+1);
-                if (pageNumbers[currentPage+1]==0) {
-                    int n = 0;
-                    memcpy((char*)page[currentPage]+PAGE_SIZE-sizeof(int),&n, sizeof(int));
-                    free(headData);
-                    break;
-                }
                 currentPage+=1;
                 currentPosition = 0;
                 memcpy(&nextPage, (char*)page[currentPage]+PAGE_SIZE-sizeof(int), sizeof(int));
             }
-            free(headData);
         }
         return pagePosition;
     }
@@ -1733,7 +1721,7 @@ void IndexManager::deleteFromCertianPage(int position, vector<void*> page, vecto
     //moveslot
     void *t = malloc(PAGE_SIZE);
     int slotlength = getVarcharSlot(t, page[pagePosition], position);
-    moveVarChardirDelete(position, pageNumbers[pagePosition],slotlength, page[pagePosition]);
+    moveVarChardirDelete(position, pageNumbers[pagePosition]-1,slotlength, page[pagePosition]);
     free(tmp);
     free(t);
 }
@@ -1763,9 +1751,6 @@ int IndexManager::findDeletePosition(int start, const void *key, const RID &rid,
                     memcpy(&targetValue, (char*)pages[pageNumber]+(offset)*INTREAL_SLOT, sizeof(int));
                     while (keyValue == targetValue and offset >= head) {
                         offset-=1;
-                        if (offset==head-1) {
-                            break;
-                        }
                         memcpy(&targetValue, (char*)pages[pageNumber]+(offset)*INTREAL_SLOT, sizeof(int));
                     }
                     offset +=1;
@@ -1779,7 +1764,7 @@ int IndexManager::findDeletePosition(int start, const void *key, const RID &rid,
                 }
                 else
                 {
-                    return findDeletePosition(offset+1+pageNumber*number, key, rid, attribute, pages, totalNumber,pageNumbers);
+                    return findDeletePosition(offset+1, key, rid, attribute, pages, totalNumber,pageNumbers);
                 }
             }
             if (keyValue > targetValue)
@@ -1813,9 +1798,6 @@ int IndexManager::findDeletePosition(int start, const void *key, const RID &rid,
                         memcpy(&targetValue, (char*)pages[pageNumber]+(offset)*INTREAL_SLOT, sizeof(int));
                     while (keyValue == targetValue and offset >= head) {
                         offset-=1;
-                        if (offset==head-1) {
-                            break;
-                        }
                         memcpy(&targetValue, (char*)pages[pageNumber]+(offset)*INTREAL_SLOT, sizeof(int));
                     }
                     offset +=1;
@@ -1829,7 +1811,7 @@ int IndexManager::findDeletePosition(int start, const void *key, const RID &rid,
                 }
                 else
                 {
-                    return findDeletePosition(offset+1+pageNumber*number, key, rid, attribute, pages, totalNumber,pageNumbers);
+                    return findDeletePosition(offset+1, key, rid, attribute, pages, totalNumber,pageNumbers);
                 }
             }
             if (keyValue > targetValue)
@@ -1867,9 +1849,6 @@ int IndexManager::findDeletePosition(int start, const void *key, const RID &rid,
                     targetValue = getVarcharValue(pages[tmppagenumber], tmpoffset);
                     while (keyValue == targetValue and offset >= head) {
                         offset-=1;
-                        if (offset==head-1) {
-                            break;
-                        }
                         int tmppagenumber;
                         int tmpoffset;
                         middleTopage(offset, pageNumbers, tmpoffset, tmppagenumber);
@@ -1879,17 +1858,17 @@ int IndexManager::findDeletePosition(int start, const void *key, const RID &rid,
                 }
                 RID tmprid;
                 getVarcharRid(tmprid, pages[pageNumber], offset);
-                int beforenumber=0;
-                for (int i=0; i<pageNumber; i++) {
-                    beforenumber+=pageNumbers[i];
-                }
                 if (tmprid.pageNum==rid.pageNum and tmprid.slotNum==rid.slotNum) {
                     // return offset;
+                    int beforenumber=0;
+                    for (int i=0; i<pageNumber; i++) {
+                        beforenumber+=pageNumbers[i];
+                    }
                     return offset+beforenumber;
                 }
                 else
                 {
-                    return findDeletePosition(offset+1+beforenumber, key, rid, attribute, pages, totalNumber,pageNumbers);
+                    return findDeletePosition(offset+1, key, rid, attribute, pages, totalNumber,pageNumbers);
                 }
             }
             if (keyValue > targetValue)
@@ -1912,21 +1891,24 @@ unsigned IndexManager::hash(const Attribute &attribute, const void *key) {
     } else {
         if (attribute.type == 1) {
             memcpy(&value, key, sizeof(float));
-            value = value >> 12;
+            //value = value & 0xfffff000;
+            value *= 100;
         } else {
             int length;
             memcpy(&length, key, sizeof(int));
             char first;
             char last;
-            memcpy(&first, (char*)key+sizeof(int), sizeof(char));
+            memcpy(&first, (char*)key+length, sizeof(char));
             memcpy(&last, (char*) key + length - 1, sizeof(char));
             value = int(first) + int(last);
         }
     }
-    result = value % (bucketInit<<level);
+   result = (int)value % (bucketInit<<level);
     if (result < next) {
         result = value % (bucketInit<<(level+1));
+        //cout<<"????????????????"<<endl;
     }
+    //cout<<"result:"<<result<<endl;
     return result;
 }
 
@@ -1953,6 +1935,7 @@ RC IndexManager::printIndexEntriesInAPage(IXFileHandle &ixfileHandle,
                sizeof(int));
         
         while (OverflowPageNo != 0) {
+            //cout<<"@@@OverflowPageNo:"<<OverflowPageNo<<endl;
             void *pageMeta = malloc(PAGE_SIZE);
             memset(pageMeta, 0, PAGE_SIZE);
             if (fhMeta.readPage(OverflowPageNo, pageMeta) == 0) {
@@ -1963,6 +1946,7 @@ RC IndexManager::printIndexEntriesInAPage(IXFileHandle &ixfileHandle,
                        (char *) pageMeta + PAGE_SIZE- sizeof(int) * 2,
                        sizeof(int));
                 totalEntries+=OverflowEntries;
+                // cout<<"@@@OverflowEntries:"<<OverflowEntries<<endl;
             }
             
             free(pageMeta);
@@ -2129,7 +2113,6 @@ RC IndexManager::getNumberOfAllPages(IXFileHandle &ixfileHandle,
 RC IndexManager::scan(IXFileHandle &ixfileHandle, const Attribute &attribute,
 		const void *lowKey, const void *highKey, bool lowKeyInclusive,
 		bool highKeyInclusive, IX_ScanIterator &ix_ScanIterator) {
-
     ix_ScanIterator.init(ixfileHandle, attribute, lowKey, highKey, lowKeyInclusive, highKeyInclusive);
     return 0;
 }
@@ -2143,7 +2126,6 @@ void IX_ScanIterator::init(IXFileHandle &ixfileHandle, const Attribute &attribut
           const void *lowKey, const void *highKey, bool lowKeyInclusive,
           bool highKeyInclusive)
 {
-    //ixfileHandle.fetchFileHandle(metaFile, primeFile);
     metaFile = &ixfileHandle.getMetaFile();
     primeFile = &ixfileHandle.getPrimFile();
     this->ixfileHandle = &ixfileHandle;
@@ -2152,15 +2134,15 @@ void IX_ScanIterator::init(IXFileHandle &ixfileHandle, const Attribute &attribut
     this->highkeyInclusive = highKeyInclusive;
     this->data = malloc(PAGE_SIZE);
     primeFile->readPage(0, data);
-    //this->//ixfileHandle->addread();
+
+    tmpmeta = *metaFile;
+    tmpprime= *primeFile;
+    
     startPosition = 0;
     currentPage = 0;
     primaryPage = primeFile->getNumberOfPages();
     totalPage = metaFile->getNumberOfPages() + primaryPage -1;
 
-    tmpmeta = *metaFile;
-    tmpprime= *primeFile;
-    
     if (attribute.type!=2) {
         keySize = sizeof(int);
         if (lowKey == NULL) {
@@ -2204,8 +2186,6 @@ void IX_ScanIterator::init(IXFileHandle &ixfileHandle, const Attribute &attribut
         keySize = length2 + sizeof(int);
         }
     }
-
-
 }
 RC IX_ScanIterator::exactMatch(RID &rid, void *key)
 {
@@ -2252,9 +2232,6 @@ RC IX_ScanIterator::exactMatch(RID &rid, void *key)
                     memcpy(&targetValue, (char*)data+(offset)*INTREAL_SLOT, sizeof(int));
                     while (keyValue == targetValue and offset >= head) {
                         offset-=1;
-                        if (offset==head-1) {
-                            break;
-                        }
                         memcpy(&targetValue, (char*)data+(offset)*INTREAL_SLOT, sizeof(int));
                     }
                     offset +=1;
@@ -2339,9 +2316,6 @@ RC IX_ScanIterator::exactMatch(RID &rid, void *key)
                     memcpy(&targetValue, (char*)data+(offset)*INTREAL_SLOT, sizeof(int));
                     while (keyValue == targetValue and offset >= head) {
                         offset-=1;
-                        if (offset==head-1) {
-                            break;
-                        }
                         memcpy(&targetValue, (char*)data+(offset)*INTREAL_SLOT, sizeof(int));
                     }
                     offset +=1;
@@ -2430,9 +2404,6 @@ RC IX_ScanIterator::exactMatch(RID &rid, void *key)
                     targetValue=getVarcharValue(data, offset);
                     while (keyValue == targetValue and offset >= head) {
                         offset-=1;
-                        if (offset==head-1) {
-                            break;
-                        }
                         targetValue=getVarcharValue(data, offset);
                     }
                     offset +=1;
@@ -2479,22 +2450,24 @@ RC IX_ScanIterator::exactMatch(RID &rid, void *key)
 
 RC IX_ScanIterator::getNextEntry(RID &rid, void *key) {
     void *tmpData = malloc(PAGE_SIZE);
+    memset(tmpData,0,PAGE_SIZE);
     if (currentPage +1> totalPage) {
         return EOF;
     }
     primeFile = &tmpprime;
     metaFile = &tmpmeta;
-    if (currentPage+1 <= primaryPage) {
+     if (currentPage+1 <= primaryPage) {
         primeFile->readPage(currentPage, tmpData);
     }
     else
     {
         metaFile->readPage(currentPage+1-primaryPage, tmpData);
     }
+
     if (memcmp(tmpData, data, PAGE_SIZE)!=0) {
         data = tmpData;
         startPosition = 0;
-        //currentPage = 0;
+       // currentPage = 0;
     }
     if (highKey != NULL and lowKey != NULL) {
         if (memcmp(highKey,lowKey, keySize)==0){
@@ -2536,7 +2509,6 @@ RC IX_ScanIterator::rangeMatch(RID &rid, void *key)
             startPosition = 0;
             return rangeMatch(rid, key);
         }
-
         int targetData;
         memcpy(&targetData, (char*)data+startPosition*INTREAL_SLOT, sizeof(int));
 
@@ -2629,7 +2601,7 @@ RC IX_ScanIterator::rangeMatch(RID &rid, void *key)
                 }
                 else
                 {
-                    while (targetData <= low) {
+                    while (targetData<=low) {
                         startPosition += 1;
                         if (startPosition+1>slotNumber) {
                             currentPage += 1;
@@ -2642,8 +2614,8 @@ RC IX_ScanIterator::rangeMatch(RID &rid, void *key)
                             }
                             else
                             {
-                                metaFile->readPage(currentPage+1-primaryPage, data);
                                 //ixfileHandle->addread();
+                                metaFile->readPage(currentPage+1-primaryPage, data);
                             }
                             startPosition = 0;
                         }
@@ -2667,23 +2639,26 @@ RC IX_ScanIterator::rangeMatch(RID &rid, void *key)
                             memcpy(&slotNumber, (char*)data+PAGE_SIZE-2*sizeof(int), sizeof(int));
                         }
                         memcpy(&targetData, (char*)data+startPosition*INTREAL_SLOT, sizeof(int));
-                        }
-                    memcpy(&key, (char*)data+startPosition*INTREAL_SLOT, sizeof(int));
+                    }
                     memcpy(&rid.pageNum, (char*)data+startPosition*INTREAL_SLOT+sizeof(int), sizeof(int));
                     memcpy(&rid.slotNum, (char*)data+startPosition*INTREAL_SLOT+2*sizeof(int), sizeof(int));
                     startPosition += 1;
                     if (startPosition+1>slotNumber) {
                         currentPage += 1;
-                        startPosition = 0;
+                        if (currentPage+1 > totalPage) {
+                            return EOF;
+                        }
                         if (currentPage+1 <= primaryPage) {
                             primeFile->readPage(currentPage, data);
-                            //ixfileHandle->addread();
+                                //ixfileHandle->addread();
                         }
                         else
                         {
                             metaFile->readPage(currentPage+1-primaryPage, data);
-                            //ixfileHandle->addread();
+                                //ixfileHandle->addread();
                         }
+                        startPosition = 0;
+                    //    return rangeMatch(rid, key);
                     }
                     return 0;
                 }
@@ -2691,6 +2666,7 @@ RC IX_ScanIterator::rangeMatch(RID &rid, void *key)
             if (lowKey==NULL) {
                 int high;
                 memcpy(&high, highKey, sizeof(int));
+                //cout<<"high:"<<high<<endl;
                 if (highkeyInclusive)
                 {
                     while (targetData > high) {
@@ -2768,41 +2744,22 @@ RC IX_ScanIterator::rangeMatch(RID &rid, void *key)
                             }
                             else
                             {
-                                metaFile->readPage(currentPage+1-primaryPage, data);
                                 //ixfileHandle->addread();
+                                metaFile->readPage(currentPage+1-primaryPage, data);
                             }
                             startPosition = 0;
-                            //return rangeMatch(rid, key);
-                        }
-                        memcpy(&slotNumber, (char*)data+PAGE_SIZE-2*sizeof(int), sizeof(int));
-                        while(slotNumber==0)
-                        {
-                            currentPage += 1;
-                            if (currentPage+1 > totalPage) {
-                                return EOF;
-                            }
-                            if (currentPage+1 <= primaryPage) {
-                                primeFile->readPage(currentPage, data);
-                                //ixfileHandle->addread();
-                            }
-                            else
-                            {
-                                metaFile->readPage(currentPage+1-primaryPage, data);
-                                //ixfileHandle->addread();
-                            }
-                            startPosition = 0;
-                            memcpy(&slotNumber, (char*)data+PAGE_SIZE-2*sizeof(int), sizeof(int));
+                            return rangeMatch(rid, key);
                         }
                         memcpy(&targetData, (char*)data+startPosition*INTREAL_SLOT, sizeof(int));
                     }
-                    memcpy(&key, (char*)data+startPosition*INTREAL_SLOT, sizeof(int));
                     memcpy(&rid.pageNum, (char*)data+startPosition*INTREAL_SLOT+sizeof(int), sizeof(int));
                     memcpy(&rid.slotNum, (char*)data+startPosition*INTREAL_SLOT+2*sizeof(int), sizeof(int));
-                    memcpy(&slotNumber, (char*)data+PAGE_SIZE-2*sizeof(int), sizeof(int));
                     startPosition += 1;
                     if (startPosition+1>slotNumber) {
                         currentPage += 1;
-                        startPosition = 0;
+                        if (currentPage+1 > totalPage) {
+                            return EOF;
+                        }
                         if (currentPage+1 <= primaryPage) {
                             primeFile->readPage(currentPage, data);
                             //ixfileHandle->addread();
@@ -2812,6 +2769,8 @@ RC IX_ScanIterator::rangeMatch(RID &rid, void *key)
                             metaFile->readPage(currentPage+1-primaryPage, data);
                             //ixfileHandle->addread();
                         }
+                        startPosition = 0;
+                        //    return rangeMatch(rid, key);
                     }
                     return 0;
                 }
@@ -2827,9 +2786,13 @@ RC IX_ScanIterator::rangeMatch(RID &rid, void *key)
             return EOF;
         }
         
+
+
+
         //check if there are data in the slot
         int slotNumber;
         memcpy(&slotNumber, (char*)data+PAGE_SIZE-2*sizeof(int), sizeof(int));
+        cout<<"slotNumber:"<<slotNumber<<endl;
         if (slotNumber==0) {
             currentPage += 1;
             if (currentPage +1> totalPage) {
@@ -2878,6 +2841,7 @@ RC IX_ScanIterator::rangeMatch(RID &rid, void *key)
             if (highKey == NULL) {
                 float low;
                 memcpy(&low, lowKey, sizeof(int));
+                //cout<<"low:"<<low<<endl;
                 if (lowKeyInclusive)
                 {
                     while (targetData < low) {
@@ -2953,8 +2917,8 @@ RC IX_ScanIterator::rangeMatch(RID &rid, void *key)
                             }
                             else
                             {
-                                metaFile->readPage(currentPage+1-primaryPage, data);
                                 //ixfileHandle->addread();
+                                metaFile->readPage(currentPage+1-primaryPage, data);
                             }
                             startPosition = 0;
                         }
@@ -2979,13 +2943,14 @@ RC IX_ScanIterator::rangeMatch(RID &rid, void *key)
                         }
                         memcpy(&targetData, (char*)data+startPosition*INTREAL_SLOT, sizeof(int));
                     }
-                    memcpy(&key, (char*)data+startPosition*INTREAL_SLOT, sizeof(int));
                     memcpy(&rid.pageNum, (char*)data+startPosition*INTREAL_SLOT+sizeof(int), sizeof(int));
                     memcpy(&rid.slotNum, (char*)data+startPosition*INTREAL_SLOT+2*sizeof(int), sizeof(int));
                     startPosition += 1;
                     if (startPosition+1>slotNumber) {
                         currentPage += 1;
-                        startPosition = 0;
+                        if (currentPage+1 > totalPage) {
+                            return EOF;
+                        }
                         if (currentPage+1 <= primaryPage) {
                             primeFile->readPage(currentPage, data);
                             //ixfileHandle->addread();
@@ -2995,6 +2960,8 @@ RC IX_ScanIterator::rangeMatch(RID &rid, void *key)
                             metaFile->readPage(currentPage+1-primaryPage, data);
                             //ixfileHandle->addread();
                         }
+                        startPosition = 0;
+                        //    return rangeMatch(rid, key);
                     }
                     return 0;
                 }
@@ -3002,6 +2969,7 @@ RC IX_ScanIterator::rangeMatch(RID &rid, void *key)
             if (lowKey==NULL) {
                 float high;
                 memcpy(&high, highKey, sizeof(int));
+                //cout<<"high:"<<high<<endl;
                 if (highkeyInclusive)
                 {
                     while (targetData > high) {
@@ -3048,307 +3016,6 @@ RC IX_ScanIterator::rangeMatch(RID &rid, void *key)
                     memcpy(&rid.pageNum, (char*)data+startPosition*INTREAL_SLOT+sizeof(int), sizeof(int));
                     memcpy(&rid.slotNum, (char*)data+startPosition*INTREAL_SLOT+2*sizeof(int), sizeof(int));
                     memcpy(&slotNumber, (char*)data+PAGE_SIZE-2*sizeof(int), sizeof(int));
-                    startPosition += 1;
-                    if (startPosition+1>slotNumber) {
-                        currentPage += 1;
-                        startPosition = 0;
-                        if (currentPage+1 <= primaryPage) {
-                            primeFile->readPage(currentPage, data);
-                            //ixfileHandle->addread();
-                        }
-                        else
-                        {
-                            metaFile->readPage(currentPage+1-primaryPage, data);
-                            //ixfileHandle->addread();
-                        }
-                    }
-                    return 0;
-                }
-                else
-                {
-                    while (targetData >= high) {
-                        startPosition += 1;
-                        if (startPosition+1>slotNumber) {
-                            currentPage += 1;
-                            if (currentPage+1 > totalPage) {
-                                return EOF;
-                            }
-                            if (currentPage+1 <= primaryPage) {
-                                primeFile->readPage(currentPage, data);
-                                //ixfileHandle->addread();
-                            }
-                            else
-                            {
-                                metaFile->readPage(currentPage+1-primaryPage, data);
-                                //ixfileHandle->addread();
-                            }
-                            startPosition = 0;
-                            //return rangeMatch(rid, key);
-                        }
-                        memcpy(&slotNumber, (char*)data+PAGE_SIZE-2*sizeof(int), sizeof(int));
-                        while(slotNumber==0)
-                        {
-                            currentPage += 1;
-                            if (currentPage+1 > totalPage) {
-                                return EOF;
-                            }
-                            if (currentPage+1 <= primaryPage) {
-                                primeFile->readPage(currentPage, data);
-                                //ixfileHandle->addread();
-                            }
-                            else
-                            {
-                                metaFile->readPage(currentPage+1-primaryPage, data);
-                                //ixfileHandle->addread();
-                            }
-                            startPosition = 0;
-                            memcpy(&slotNumber, (char*)data+PAGE_SIZE-2*sizeof(int), sizeof(int));
-                        }
-                        memcpy(&targetData, (char*)data+startPosition*INTREAL_SLOT, sizeof(int));
-                    }
-                    memcpy(&key, (char*)data+startPosition*INTREAL_SLOT, sizeof(int));
-                    memcpy(&rid.pageNum, (char*)data+startPosition*INTREAL_SLOT+sizeof(int), sizeof(int));
-                    memcpy(&rid.slotNum, (char*)data+startPosition*INTREAL_SLOT+2*sizeof(int), sizeof(int));
-                    memcpy(&slotNumber, (char*)data+PAGE_SIZE-2*sizeof(int), sizeof(int));
-                    startPosition += 1;
-                    if (startPosition+1>slotNumber) {
-                        currentPage += 1;
-                        startPosition = 0;
-                        if (currentPage+1 <= primaryPage) {
-                            primeFile->readPage(currentPage, data);
-                            //ixfileHandle->addread();
-                        }
-                        else
-                        {
-                            metaFile->readPage(currentPage+1-primaryPage, data);
-                            //ixfileHandle->addread();
-                        }
-                    }
-                    return 0;
-                }
-            }
-            else{
-            }
-        }
-    }
-    else
-    {
-        //check if it comes to end
-        if (currentPage +1> totalPage) {
-            return EOF;
-        }
-        
-        //check if there are data in the slot
-        int slotNumber;
-        memcpy(&slotNumber, (char*)data+PAGE_SIZE-2*sizeof(int), sizeof(int));
-        if (slotNumber==0) {
-            currentPage += 1;
-            if (currentPage +1> totalPage) {
-                return EOF;
-            }
-            if (currentPage+1 <= primaryPage) {
-                primeFile->readPage(currentPage, data);
-                //ixfileHandle->addread();
-            }
-            else
-            {
-                metaFile->readPage(currentPage+1-primaryPage, data);
-                //ixfileHandle->addread();
-            }
-            startPosition = 0;
-            return rangeMatch(rid, key);
-        }
-        
-        string targetData = getVarcharValue(data, startPosition);
-        //without any limitation
-        if (highKey==NULL and lowKey==NULL) {
-            getVarcharKeyRid(key, rid, data, startPosition);
-            startPosition += 1;
-            if (startPosition+1>slotNumber) {
-                currentPage += 1;
-                startPosition = 0;
-                if (currentPage+1 <= primaryPage) {
-                    primeFile->readPage(currentPage, data);
-                }
-                else
-                {
-                    metaFile->readPage(currentPage+1-primaryPage, data);
-                }
-            }
-            return 0;
-        }
-        //range search
-        else{
-            //without highKey
-            if (highKey == NULL) {
-                string low="";
-                int stringLength;
-                memcpy(&stringLength, (char*)lowKey, sizeof(int));
-                low.assign((char*)lowKey+sizeof(int), (char*)lowKey+sizeof(int) + stringLength);
-                if (lowKeyInclusive)
-                {
-                    while (targetData < low) {
-                        startPosition += 1;
-                        if (startPosition+1>slotNumber) {
-                            currentPage += 1;
-                            if (currentPage+1 > totalPage) {
-                                return EOF;
-                            }
-                            if (currentPage+1 <= primaryPage) {
-                                primeFile->readPage(currentPage, data);
-                                //ixfileHandle->addread();
-                            }
-                            else
-                            {
-                                metaFile->readPage(currentPage+1-primaryPage, data);
-                                //ixfileHandle->addread();
-                            }
-                            startPosition = 0;
-                        }
-                        memcpy(&slotNumber, (char*)data+PAGE_SIZE-2*sizeof(int), sizeof(int));
-                        while(slotNumber==0)
-                        {
-                            currentPage += 1;
-                            if (currentPage+1 > totalPage) {
-                                return EOF;
-                            }
-                            if (currentPage+1 <= primaryPage) {
-                                primeFile->readPage(currentPage, data);
-                                //ixfileHandle->addread();
-                            }
-                            else
-                            {
-                                metaFile->readPage(currentPage+1-primaryPage, data);
-                                //ixfileHandle->addread();
-                            }
-                            startPosition = 0;
-                            memcpy(&slotNumber, (char*)data+PAGE_SIZE-2*sizeof(int), sizeof(int));
-                        }
-                            string targetData = getVarcharValue(data, startPosition);
-                    }
-                    getVarcharKeyRid(key, rid, data, startPosition);
-                    startPosition += 1;
-                    if (startPosition+1>slotNumber) {
-                        currentPage += 1;
-                        startPosition = 0;
-                        if (currentPage+1 <= primaryPage) {
-                            primeFile->readPage(currentPage, data);
-                            //ixfileHandle->addread();
-                        }
-                        else
-                        {
-                            metaFile->readPage(currentPage+1-primaryPage, data);
-                            //ixfileHandle->addread();
-                        }
-                    }
-                    return 0;
-                }
-                else
-                {
-                    while (targetData <= low) {
-                        startPosition += 1;
-                        if (startPosition+1>slotNumber) {
-                            currentPage += 1;
-                            if (currentPage+1 > totalPage) {
-                                return EOF;
-                            }
-                            if (currentPage+1 <= primaryPage) {
-                                primeFile->readPage(currentPage, data);
-                                //ixfileHandle->addread();
-                            }
-                            else
-                            {
-                                metaFile->readPage(currentPage+1-primaryPage, data);
-                                //ixfileHandle->addread();
-                            }
-                            startPosition = 0;
-                        }
-                        memcpy(&slotNumber, (char*)data+PAGE_SIZE-2*sizeof(int), sizeof(int));
-                        while(slotNumber==0)
-                        {
-                            currentPage += 1;
-                            if (currentPage+1 > totalPage) {
-                                return EOF;
-                            }
-                            if (currentPage+1 <= primaryPage) {
-                                primeFile->readPage(currentPage, data);
-                                //ixfileHandle->addread();
-                            }
-                            else
-                            {
-                                metaFile->readPage(currentPage+1-primaryPage, data);
-                                //ixfileHandle->addread();
-                            }
-                            startPosition = 0;
-                            memcpy(&slotNumber, (char*)data+PAGE_SIZE-2*sizeof(int), sizeof(int));
-                        }
-                            string targetData = getVarcharValue(data, startPosition);
-                    }
-                    getVarcharKeyRid(key, rid, data, startPosition);
-                    startPosition += 1;
-                    if (startPosition+1>slotNumber) {
-                        currentPage += 1;
-                        startPosition = 0;
-                        if (currentPage+1 <= primaryPage) {
-                            primeFile->readPage(currentPage, data);
-                            //ixfileHandle->addread();
-                        }
-                        else
-                        {
-                            metaFile->readPage(currentPage+1-primaryPage, data);
-                            //ixfileHandle->addread();
-                        }
-                    }
-                    return 0;
-            }
-            if (lowKey==NULL) {
-                string high="";
-                int stringLength;
-                memcpy(&stringLength, (char*)highKey, sizeof(int));
-                high.assign((char*)highKey+sizeof(int), (char*)highKey+sizeof(int) + stringLength);
-                if (highkeyInclusive)
-                {
-                    while (targetData > high) {
-                        startPosition += 1;
-                        if (startPosition+1>slotNumber) {
-                            currentPage += 1;
-                            if (currentPage+1 > totalPage) {
-                                return EOF;
-                            }
-                            if (currentPage+1 <= primaryPage) {
-                                primeFile->readPage(currentPage, data);
-                                //ixfileHandle->addread();
-                            }
-                            else
-                            {
-                                metaFile->readPage(currentPage+1-primaryPage, data);
-                                //ixfileHandle->addread();
-                            }
-                            startPosition = 0;
-                            //return rangeMatch(rid, key);
-                        }
-                        memcpy(&slotNumber, (char*)data+PAGE_SIZE-2*sizeof(int), sizeof(int));
-                        while(slotNumber==0)
-                        {
-                            currentPage += 1;
-                            if (currentPage+1 > totalPage) {
-                                return EOF;
-                            }
-                            if (currentPage+1 <= primaryPage) {
-                                primeFile->readPage(currentPage, data);
-                                //ixfileHandle->addread();
-                            }
-                            else
-                            {
-                                metaFile->readPage(currentPage+1-primaryPage, data);
-                                //ixfileHandle->addread();
-                            }
-                            startPosition = 0;
-                            memcpy(&slotNumber, (char*)data+PAGE_SIZE-2*sizeof(int), sizeof(int));
-                        }
-                            string targetData = getVarcharValue(data, startPosition);
-                    }
-                    getVarcharKeyRid(key, rid, data, startPosition);
                     startPosition += 1;
                     if (startPosition+1>slotNumber) {
                         currentPage += 1;
@@ -3380,38 +3047,22 @@ RC IX_ScanIterator::rangeMatch(RID &rid, void *key)
                             }
                             else
                             {
-                                metaFile->readPage(currentPage+1-primaryPage, data);
                                 //ixfileHandle->addread();
+                                metaFile->readPage(currentPage+1-primaryPage, data);
                             }
                             startPosition = 0;
-                            //return rangeMatch(rid, key);
+                            return rangeMatch(rid, key);
                         }
-                        memcpy(&slotNumber, (char*)data+PAGE_SIZE-2*sizeof(int), sizeof(int));
-                        while(slotNumber==0)
-                        {
-                            currentPage += 1;
-                            if (currentPage+1 > totalPage) {
-                                return EOF;
-                            }
-                            if (currentPage+1 <= primaryPage) {
-                                primeFile->readPage(currentPage, data);
-                                //ixfileHandle->addread();
-                            }
-                            else
-                            {
-                                metaFile->readPage(currentPage+1-primaryPage, data);
-                                //ixfileHandle->addread();
-                            }
-                            startPosition = 0;
-                            memcpy(&slotNumber, (char*)data+PAGE_SIZE-2*sizeof(int), sizeof(int));
-                        }
-                            string targetData = getVarcharValue(data, startPosition);
+                        memcpy(&targetData, (char*)data+startPosition*INTREAL_SLOT, sizeof(int));
                     }
-                    getVarcharKeyRid(key, rid, data, startPosition);
+                    memcpy(&rid.pageNum, (char*)data+startPosition*INTREAL_SLOT+sizeof(int), sizeof(int));
+                    memcpy(&rid.slotNum, (char*)data+startPosition*INTREAL_SLOT+2*sizeof(int), sizeof(int));
                     startPosition += 1;
                     if (startPosition+1>slotNumber) {
                         currentPage += 1;
-                        startPosition = 0;
+                        if (currentPage+1 > totalPage) {
+                            return EOF;
+                        }
                         if (currentPage+1 <= primaryPage) {
                             primeFile->readPage(currentPage, data);
                             //ixfileHandle->addread();
@@ -3421,21 +3072,21 @@ RC IX_ScanIterator::rangeMatch(RID &rid, void *key)
                             metaFile->readPage(currentPage+1-primaryPage, data);
                             //ixfileHandle->addread();
                         }
+                        startPosition = 0;
+                        //    return rangeMatch(rid, key);
                     }
                     return 0;
                 }
             }
             else{
             }
-            }
         }
     }
-    return -1;
+	return -1;
 }
+
 RC IX_ScanIterator::close() {
-    
-    if(data!=NULL){
-    free(data);}
+    free(data);
 	return 0;
 }
 

@@ -8,7 +8,10 @@
 // TODO: update delimiters later
 #define DELIMITERS " ,()\""
 
+//define DATABASE_FOLDER "/Users/shuaiweicui/lastpro/project4/cli"
+
 // CVS file read delimiters
+//#define DATABASE_FOLDER "/Users/shuaiweicui/lastpro/project4/cli"
 #define CVS_DELIMITERS ","
 #define CLI_TABLES "cli_tables"
 #define CLI_COLUMNS "cli_columns"
@@ -318,7 +321,6 @@ RC CLI::process(const string input)
 Iterator * CLI::query(Iterator *previous, int code)
 {
   Iterator *it = NULL;
-  cout<<"code:"<<code<<endl;
   if (code >= 0 || (code != -2 && isIterator(string(next()), code)) ) {
     switch(code) {
       case FILTER:
@@ -346,7 +348,6 @@ Iterator * CLI::query(Iterator *previous, int code)
 
       case IDX_SCAN:
         it = createBaseScanner("IDXSCAN");
-        cout<<"FINISHEDcreateBaseScanner"<<endl;
         break;
 
       case TBL_SCAN:
@@ -358,7 +359,6 @@ Iterator * CLI::query(Iterator *previous, int code)
         break;
     }
   }
-  cout<<"return query with code:"<<code<<endl;
   return it;
 }
 
@@ -606,7 +606,6 @@ Iterator * CLI::createBaseScanner(const string token) {
       default:
       break;
     }
-    cout<<"return is"<<endl;
     return is;
   }
   // otherwise, create create table scanner
@@ -644,14 +643,12 @@ RC CLI::run(Iterator *it) {
 	
   for (uint i=0; i < attrs.size(); i++)
     outputBuffer.push_back(attrs[i].name);
-
   while (it->getNextTuple(data) != QE_EOF) {
     if ( updateOutputBuffer(outputBuffer, data, attrs) != 0)
       return error(__LINE__);
   }
   if (printOutputBuffer(outputBuffer, attrs.size()) != 0)
     return error(__LINE__);
-  cout<<"return run"<<endl;
   return 0;
 }
 

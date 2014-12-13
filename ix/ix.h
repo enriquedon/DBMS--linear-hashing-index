@@ -113,7 +113,7 @@ private:
 	RC getLevelNext(IXFileHandle &ixfileHandle);
 	map<string, vector<int> > attributeTable;   //level, next, hashBits
     int findInsertPosition(const void *key, const Attribute attribute, vector<void *> &page, int totalNumber,vector<int> pagenumbers);
-    int findDeletePosition(int start,const void *key, const RID &rid, const Attribute attribute, vector<void *> &page, int totalNumber);
+    int findDeletePosition(int start,const void *key, const RID &rid, const Attribute attribute, vector<void *> &page, int totalNumber, vector<int> pageNumbers);
     int insertToPage(int position, vector<int> &pageNumbers, const void *key, const Attribute attribute, vector<void *> &page,const RID &rid);
     int writeToPages(IXFileHandle &ixfileHandle, FileHandle &metaFile, FileHandle &primFile, int startPage, vector<void*> &page, vector<int> &pagePosition, int nextPageNumber);
     int deleteFromPages(int position, vector<int> &pageNumbers, const void *key, const Attribute attribute, vector<void *> &page, const RID &rid);
@@ -126,9 +126,11 @@ private:
     
    //  int getVarcharOffset(void* data, int offset);
     void moveVarChardir(int start, int end, int slotlength, void *data);
+    void moveVarChardirDelete(int start, int end, int slotlength, void *data);
     void  insertTailTopage(void *tailData,vector<int> &tailLengths,int taillength,int currentPage,vector<void*> &page,vector<int> &pageNumbers);
     int getVarcharTailData(void *pagedata, int taillength, vector<int> &tailLengths, void* tailData);
     void middleTopage(int middle, vector<int>pageNumbers, int&offset, int&pageNum);
+    void deleteFromCertianPage(int position, vector<void*> page, vector<int> &pageNumbers, int pagePosition);
 
     
     
@@ -190,6 +192,8 @@ public:
 	RC getNextEntry(RID &rid, void *key);  		// Get next matching entry
 
     RC close();             						// Terminate index scan
+    FileHandle tmpmeta;
+    FileHandle tmpprime;
 private:
     RC exactMatch(RID &rid, void *key);
     

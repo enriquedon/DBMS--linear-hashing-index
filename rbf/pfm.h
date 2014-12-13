@@ -52,6 +52,7 @@ public:
     RC collectCounterValues(unsigned &readPageCount, unsigned &writePageCount, unsigned &appendPageCount);
 private:
     FILE *file;
+
     unsigned pageNumber;
     unsigned readPageCounter;
     unsigned writePageCounter;

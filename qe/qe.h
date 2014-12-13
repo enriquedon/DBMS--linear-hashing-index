@@ -153,36 +153,17 @@ class IndexScan : public Iterator
                          bool highKeyInclusive)
         {
             iter->close();
-            if(lowKey!=NULL){
-                cout<<"lowKey:"<<*(float*)lowKey<<endl;
-            }
-            if(highKey!=NULL){
-                cout<<"highKey:"<<*(float*)highKey<<endl;
-            }
             delete iter;
             //RM_IndexScanIterator *iter1;
             iter = new RM_IndexScanIterator();
-
-            
             rm.indexScan(tableName, attrName, lowKey, highKey, lowKeyInclusive,
                            highKeyInclusive, *iter);
-            //cout<<"primeNumberOfPages IndexScan:"<<iter->rmindexscaner.primeFile->getNumberOfPages()<<endl;
-            //cout<<"metaNumberOfPages IndexScan:"<<iter->rmindexscaner.metaFile->getNumberOfPages()<<endl;
-            //cout<<"primeNumberOfPages IndexScan:"<<iter->rmindexscaner.ixfileHandle->getPrimPageNumber()<<endl;
-            //cout<<"metaNumberOfPages IndexScan:"<<iter->rmindexscaner.ixfileHandle->getMetaPageNumber()<<endl;
         };
 
         RC getNextTuple(void *data)
         {
 
-
-            //cout<<"primeNumberOfPages IndexScangetNextTuple:"<<iter->rmindexscaner.primeFile->getNumberOfPages()<<endl;
-            //cout<<"metaNumberOfPages IndexScangetNextTuple:"<<iter->rmindexscaner.metaFile->getNumberOfPages()<<endl;
-            //cout<<"primeNumberOfPages IndexScangetNextTuple:"<<iter->rmindexscaner.ixfileHandle->getPrimPageNumber()<<endl;
-            //cout<<"metaNumberOfPages IndexScangetNextTuple:"<<iter->rmindexscaner.ixfileHandle->getMetaPageNumber()<<endl;
-
             int rc = iter->getNextEntry(rid, key);
-            //cout<<"indexcsan getNextTuple key:"<<*(float*)key<<endl;
             if(rc == 0)
             {
                 rc = rm.readTuple(tableName.c_str(), rid, data);
@@ -258,12 +239,47 @@ class GHJoin : public Iterator {
             Iterator *rightIn,               // Iterator of input S
             const Condition &condition,      // Join condition (CompOp is always EQ)
             const unsigned numPartitions     // # of partitions for each relation (decided by the optimizer)
-      ){};
-      ~GHJoin(){};
+      );
+      ~GHJoin(){
+      };
 
-      RC getNextTuple(void *data){return QE_EOF;};
+    RC getNextTuple(void *data);
       // For attribute in vector<Attribute>, name it as rel.attr
-      void getAttributes(vector<Attribute> &attrs) const{};
+      void getAttributes(vector<Attribute> &attrs) const
+    {
+        attrs.clear();
+        for(int i=0;i<leftdes.size();i++)
+            attrs.push_back(leftdes[i]);
+        for(int i=0;i<rightdes.size();i++)
+            attrs.push_back(rightdes[i]);
+
+    };
+    unsigned hash(unsigned numPartitions, Attribute &attribute, void *key);
+    private:
+    void partition();
+    void getMap();
+    RecordBasedFileManager *rbfm;
+    Iterator *leftIn;
+    Iterator *rightIn;
+    Condition cond;
+    Attribute rightAttr;
+    Attribute leftAttr;
+    vector <Attribute> rightdes,leftdes;
+    
+    unsigned numPart;
+    vector<FileHandle> leftFile;
+    vector<FileHandle> rightFile;
+    
+    vector<RBFM_ScanIterator> leftScan;
+    vector<RBFM_ScanIterator> rightScan;
+    
+    map <int, void* > intmap;
+    map <float, void* > floatmap;
+    map <string, void* > stringmap;
+    
+    unsigned currentPart;
+    void *leftdata;
+
 };
 
 
@@ -293,6 +309,7 @@ class BNLJoin : public Iterator {
         Condition cond;
         Attribute rightAttr;
         Attribute leftAttr;
+
         unsigned numRec;
         void *leftdata;
         vector<void*> records;
@@ -351,7 +368,14 @@ class Aggregate : public Iterator {
                   AggregateOp op,              // Aggregate operation
                   const unsigned numPartitions // Number of partitions for input (decided by the optimizer)
         );
-        ~Aggregate(){};
+        ~Aggregate(){
+            for(int i=0;i<intvector.size();i++)
+                free(intvector[i].second.first);
+            for(int i=0;i<floatvector.size();i++)
+                free(floatvector[i].second.first);
+            for(int i=0;i<stringvector.size();i++)
+                free(stringvector[i].second.first);
+        };
 
         RC getNextTuple(void *data);
         // Please name the output attribute as aggregateOp(aggAttr)
