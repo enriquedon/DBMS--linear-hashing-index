@@ -146,20 +146,19 @@ RC IndexManager::openFile(const string &fileName, IXFileHandle &ixfileHandle) {
 }
 
 RC IndexManager::closeFile(IXFileHandle &ixfileHandle) {
-	FileHandle fhMeta;
-	FileHandle fhPrim;
-	ixfileHandle.fetchFileHandle(fhMeta, fhPrim);
+    FileHandle *fhMeta = &ixfileHandle.getMetaFile();
+    FileHandle *fhPrim = &ixfileHandle.getPrimFile();
 	void *meta = malloc(PAGE_SIZE);
-	fhMeta.readPage(0, meta);
+	fhMeta->readPage(0, meta);
 	int level = ixfileHandle.getLevel();
 	int next = ixfileHandle.getNext();
 	//int bucket = ixfileHandle.getBucket();
 	memcpy((char*) meta, &level, sizeof(int));
 	memcpy((char*) meta + sizeof(int), &next, sizeof(int));
 	//memcpy((char*)meta + 2*sizeof(int), &bucket, sizeof(int));
-	fhMeta.writePage(0, meta);
-	PagedFileManager::instance()->closeFile(fhMeta);
-	PagedFileManager::instance()->closeFile(fhPrim);
+	fhMeta->writePage(0, meta);
+	PagedFileManager::instance()->closeFile(*fhMeta);
+	PagedFileManager::instance()->closeFile(*fhPrim);
 	free(meta);
 	return 0;
 }
