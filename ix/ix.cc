@@ -130,19 +130,17 @@ RC IndexManager::openFile(const string &fileName, IXFileHandle &ixfileHandle) {
 	FileHandle fhPrim;
 
 	if (PagedFileManager::instance()->openFile(metaFile.c_str(), fhMeta) == 0) {
-        ixfileHandle.passFileHandle(fhMeta, fhPrim);
-        fseek(fhMeta.getFile(), 0, SEEK_END);
-        ixfileHandle.setMetaPageNumber(ftell(fhMeta.getFile()) / PAGE_SIZE);
-        fseek(fhMeta.getFile(), 0, SEEK_SET);
 		getLevelNext(ixfileHandle);
-        //cout<<"metaFile:"<<metaFile.c_str()<<endl;
 		if (PagedFileManager::instance()->openFile(primFile.c_str(), fhPrim)
 				== 0) {
 			ixfileHandle.passFileHandle(fhMeta, fhPrim);
 			fseek(fhPrim.getFile(), 0, SEEK_END);
 			ixfileHandle.setPrimPageNumber(ftell(fhPrim.getFile()) / PAGE_SIZE);
 			fseek(fhPrim.getFile(), 0, SEEK_SET);
-			
+			ixfileHandle.passFileHandle(fhMeta, fhPrim);
+			fseek(fhMeta.getFile(), 0, SEEK_END);
+			ixfileHandle.setMetaPageNumber(ftell(fhMeta.getFile()) / PAGE_SIZE);
+			fseek(fhMeta.getFile(), 0, SEEK_SET);
 
 			return 0;
 		}
@@ -1996,10 +1994,10 @@ int IndexManager::printEntriesInPrim(FileHandle &fhPrim,
                                      const Attribute &attribute, void *pagePrim) {
     switch (attribute.type) {
         case 0:
-            IntRealPrint(pagePrim);
+            IntPrint(pagePrim);
             break;
         case 1:
-            IntRealPrint(pagePrim);
+            RealPrint(pagePrim);
             break;
         case 2:
             VarCharPrint(pagePrim);
@@ -2024,10 +2022,10 @@ int IndexManager::printEntriesInMeta(FileHandle &fhMeta,const Attribute &attribu
         
         switch (attribute.type) {
             case 0:
-                NextPage = IntRealPrint(pageMeta);
+                NextPage = IntPrint(pageMeta);
                 break;
             case 1:
-                NextPage = IntRealPrint(pageMeta);
+                NextPage = RealPrint(pageMeta);
                 break;
             case 2:
                 NextPage = VarCharPrint(pageMeta);
@@ -2035,16 +2033,13 @@ int IndexManager::printEntriesInMeta(FileHandle &fhMeta,const Attribute &attribu
                 
         }
         free(pageMeta);
-        if (NextPage > 0) {
-            //printEntriesInMeta(fhMeta, attribute, NextPage);
-        }
         return 0;
     }
     free(pageMeta);
     return -1;
 }
 
-int IndexManager::IntRealPrint(void *page) {
+int IndexManager::IntPrint(void *page) {
     int Entries;
     memcpy(&Entries, (char *) page + PAGE_SIZE - sizeof(int) * 2, sizeof(int));
     cout << " b. entries:" << endl;
@@ -2052,6 +2047,7 @@ int IndexManager::IntRealPrint(void *page) {
         int offset = INTREAL_SLOT * i;
         int key;
         RID rid;
+        //float key=*(float *) ((char *) page + offset);
         memcpy(&key, (char *) page + offset, sizeof(int));
         memcpy(&rid.pageNum, (char *) page + offset + sizeof(int), sizeof(int));
         memcpy(&rid.slotNum, (char *) page + offset + sizeof(int) * 2,
@@ -2061,8 +2057,28 @@ int IndexManager::IntRealPrint(void *page) {
     int NextPage;
     memcpy(&NextPage, (char *) page + PAGE_SIZE - sizeof(int), sizeof(int));
     return NextPage;
-    
-    return 0;
+
+}
+
+int IndexManager::RealPrint(void *page) {
+    int Entries;
+    memcpy(&Entries, (char *) page + PAGE_SIZE - sizeof(int) * 2, sizeof(int));
+    cout << " b. entries:" << endl;
+    for (int i = 0; i < Entries; i++) {
+        int offset = INTREAL_SLOT * i;
+        //int key;
+        RID rid;
+        float key=*(float *) ((char *) page + offset);
+        //memcpy(&key, (char *) page + offset, sizeof(int));
+        memcpy(&rid.pageNum, (char *) page + offset + sizeof(int), sizeof(int));
+        memcpy(&rid.slotNum, (char *) page + offset + sizeof(int) * 2,
+               sizeof(int));
+        cout << "[" << key << "/" << rid.pageNum << "," << rid.slotNum << "] ";
+    }
+    int NextPage;
+    memcpy(&NextPage, (char *) page + PAGE_SIZE - sizeof(int), sizeof(int));
+    return NextPage;
+
 }
 
 int IndexManager::VarCharPrint(void *page) {
@@ -2188,6 +2204,8 @@ void IX_ScanIterator::init(IXFileHandle &ixfileHandle, const Attribute &attribut
         keySize = length2 + sizeof(int);
         }
     }
+
+
 }
 RC IX_ScanIterator::exactMatch(RID &rid, void *key)
 {
