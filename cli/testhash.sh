@@ -1,4 +1,4 @@
 #!/bin/bash
 make clean
 make
-./clitest_07
+./clitest_11

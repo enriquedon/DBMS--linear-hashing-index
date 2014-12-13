@@ -70,7 +70,6 @@ RC PagedFileManager::openFile(const char *fileName, FileHandle &fileHandle)
         if (file == NULL) {
             return -1;
         }
-        fileHandle.filen = fileName;
         fileHandle.setFile(file);
         fseek(fileHandle.getFile(), 0, SEEK_END);
         fileHandle.setPageNumber(ftell(fileHandle.getFile())/PAGE_SIZE);
@@ -90,7 +89,6 @@ RC PagedFileManager::closeFile(FileHandle &fileHandle)
 {
     try
     {
-
         fclose(fileHandle.getFile());
         return 0;
     }

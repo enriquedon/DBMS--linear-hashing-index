@@ -321,7 +321,6 @@ RC CLI::process(const string input)
 Iterator * CLI::query(Iterator *previous, int code)
 {
   Iterator *it = NULL;
-  cout<<"code:"<<code<<endl;
   if (code >= 0 || (code != -2 && isIterator(string(next()), code)) ) {
     switch(code) {
       case FILTER:
@@ -349,7 +348,6 @@ Iterator * CLI::query(Iterator *previous, int code)
 
       case IDX_SCAN:
         it = createBaseScanner("IDXSCAN");
-        cout<<"FINISHEDcreateBaseScanner"<<endl;
         break;
 
       case TBL_SCAN:
@@ -361,7 +359,6 @@ Iterator * CLI::query(Iterator *previous, int code)
         break;
     }
   }
-  cout<<"return query with code:"<<code<<endl;
   return it;
 }
 
@@ -609,7 +606,6 @@ Iterator * CLI::createBaseScanner(const string token) {
       default:
       break;
     }
-    cout<<"return is"<<endl;
     return is;
   }
   // otherwise, create create table scanner
@@ -653,7 +649,6 @@ RC CLI::run(Iterator *it) {
   }
   if (printOutputBuffer(outputBuffer, attrs.size()) != 0)
     return error(__LINE__);
-  cout<<"return run"<<endl;
   return 0;
 }
 

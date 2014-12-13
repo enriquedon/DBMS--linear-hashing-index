@@ -155,16 +155,14 @@ class IndexScan : public Iterator
             iter->close();
             delete iter;
             iter = new RM_IndexScanIterator();
-            cout<<"lowKey:"<<*(float*)lowKey<<endl;
             rm.indexScan(tableName, attrName, lowKey, highKey, lowKeyInclusive,
                            highKeyInclusive, *iter);
         };
 
         RC getNextTuple(void *data)
         {
-            cout<<"indexcsan getNextTuple"<<endl;
+
             int rc = iter->getNextEntry(rid, key);
-            cout<<"indexcsan getNextTuple key:"<<*(float*)key<<endl;
             if(rc == 0)
             {
                 rc = rm.readTuple(tableName.c_str(), rid, data);
